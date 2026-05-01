@@ -3,53 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Erişilebilir Satranç - Multiplayer</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <title>Online Satranç - V13 (AI & Multiplayer)</title>
     <style>
         body { background-color: #121212; color: #ffffff; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 30px; }
+        #menu { display: flex; gap: 15px; margin-bottom: 15px; align-items: center; background-color: #1e1e1e; padding: 15px 25px; border-radius: 8px; border: 2px solid #333; }
+        #menu button, #menu select, #main-menu button { background-color: #333333; color: #ffffff; border: 1px solid #777; padding: 10px 20px; font-size: 18px; cursor: pointer; border-radius: 5px; transition: 0.2s; }
+        #main-menu { text-align: center; background: #1e1e1e; padding: 40px; border-radius: 15px; border: 2px solid #b89b42; margin-top: 50px; }
+        #main-menu input { padding: 10px; font-size: 18px; border-radius: 5px; border: 1px solid #777; background: #000; color: #fff; width: 200px; margin-bottom: 10px; }
         #status-bar { font-size: 20px; color: #aaaaaa; margin-bottom: 25px; min-height: 24px; font-weight: bold; }
         #game-container { display: grid; grid-template-columns: 40px 640px; grid-template-rows: 640px 40px; gap: 5px; position: relative; }
         #board { display: grid; grid-template-columns: repeat(8, 80px); grid-template-rows: repeat(8, 80px); border: 2px solid #b89b42; }
         .ranks, .files { display: grid; align-items: center; text-align: center; font-size: 22px; color: #aaaaaa; }
         .ranks { grid-template-rows: repeat(8, 80px); }
         .files { grid-template-columns: repeat(8, 80px); }
-        .square { background-color: #000000; color: #ffffff; font-size: 50px; display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none; box-sizing: border-box; border: 1px solid #b89b42; position: relative; }
-        .piece { display: inline-block; pointer-events: none; }
-        .selected { border: 3px solid #ffffff; outline: 1px solid #ffffff; z-index: 2; }
-        .cant-move { border: 3px solid #ff3333; outline: 1px solid #ff3333; z-index: 2; }
-        .valid-move { border: 3px solid #ffffff; z-index: 2; animation: pulse-white 1.2s infinite; }
-        @keyframes pulse-white { 0% { border-color: #ffffff; outline: 1px solid #ffffff; } 50% { border-color: #444444; outline: 1px solid #444444; } 100% { border-color: #ffffff; outline: 1px solid #ffffff; } }
-        .corner-empty { width: 40px; height: 40px; }
-        .animated-piece { position: absolute; font-size: 50px; color: #ffffff; display: flex; justify-content: center; align-items: center; width: 80px; height: 80px; z-index: 100; transition: left 0.6s ease-in-out, top 0.6s ease-in-out; pointer-events: none; }
+        .square { background-color: #000000; color: #ffffff; font-size: 50px; display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none; border: 1px solid #b89b42; position: relative; width: 80px; height: 80px; box-sizing: border-box; }
+        .piece { pointer-events: none; }
+        .selected { border: 3px solid #ffffff; z-index: 2; }
+        .cant-move { border: 3px solid #ff3333; z-index: 2; }
+        .valid-move { border: 3px solid #ffffff; animation: pulse-white 1.2s infinite; }
+        .ai-selected { border: 3px solid #ffffff !important; animation: pulse-white 1.2s infinite !important; }
+        @keyframes pulse-white { 0%, 100% { border-color: #ffffff; } 50% { border-color: #444; } }
+        .animated-piece { position: absolute; font-size: 50px; color: #ffffff; width: 80px; height: 80px; display: flex; justify-content: center; align-items: center; z-index: 100; transition: left 0.6s ease-in-out, top 0.6s ease-in-out; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <h2 style="color: #b89b42;">Satranç Online (Multiplayer Test)</h2>
-    <div id="status-bar">Sunucuya bağlanılıyor...</div>
-
-    <div id="game-container">
-        <div class="ranks" id="ranks"></div>
-        <div style="position: relative;">
-            <div id="board"></div>
-            <div id="animation-layer"></div>
+    <div id="main-menu">
+        <h1>♟️ Satranç Online & AI</h1>
+        <button onclick="startMode('pve')">Bilgisayara Karşı Oyna</button>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #444;">
+            <input type="text" id="room-input" placeholder="Oda Adı Girin">
+            <button onclick="startMode('online')">Oda Kur / Katıl</button>
         </div>
-        <div class="corner-empty"></div>
-        <div class="files" id="files"></div>
     </div>
 
-    <script>
-        const socket = io(); 
+    <div id="game-ui" style="display:none;">
+        <div id="menu">
+            <button onclick="location.reload()">🏠 Menü</button>
+            <div id="ai-controls" style="display:none;">
+                <select id="ai-difficulty" onchange="setDifficulty(this.value)">
+                    <option value="1">Kolay</option>
+                    <option value="2" selected>Orta</option>
+                    <option value="3">Zor</option>
+                </select>
+                <button onclick="resetGame()">Yeni Oyun</button>
+            </div>
+            <span id="role-info" style="margin-left:20px; color:#e6ce55;"></span>
+        </div>
 
+        <div id="status-bar">Bağlanılıyor...</div>
+
+        <div id="game-container">
+            <div class="ranks" id="ranks"></div>
+            <div style="position: relative;">
+                <div id="board"></div>
+                <div id="animation-layer"></div>
+            </div>
+            <div class="corner-empty"></div>
+            <div class="files" id="files"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // --- DEĞİŞKENLER ---
         let boardState = [];
         let selectedSquare = null;
         let validMoves = [];
-        let currentTurn = 'white'; 
-        let isAnimating = false; 
-        
-        let myColor = null; 
-        let isFlipped = false; 
+        let currentTurn = 'white';
+        let isAnimating = false;
+        let gameOver = false;
+        let gameMode = 'pvp';
+        let myRole = 'white'; 
+        let currentRoom = null;
+        let aiDepth = 2;
+        let isFlipped = false;
+        let gameId = 0;
+        const socket = io();
 
+        // --- ONLINE BAĞLANTILAR ---
+        function startMode(mode) {
+            if (mode === 'online') {
+                currentRoom = document.getElementById('room-input').value;
+                if (!currentRoom) return alert("Lütfen bir oda adı girin!");
+                socket.emit('joinRoom', currentRoom);
+            } else {
+                gameMode = 'pve';
+                myRole = 'white';
+                document.getElementById('ai-controls').style.display = 'block';
+                initGameUI();
+                resetGame();
+            }
+        }
+
+        socket.on('playerRole', (data) => {
+            myRole = data.role;
+            gameMode = 'online';
+            currentRoom = data.roomID;
+            document.getElementById('role-info').textContent = `Rolünüz: ${myRole === 'white' ? 'BEYAZ' : 'SİYAH'}`;
+            if (myRole === 'black') { isFlipped = true; } 
+            initGameUI();
+            resetGame();
+        });
+
+        socket.on('startGame', () => { showMessage("Rakip bağlandı! Oyun başladı."); });
+
+        socket.on('move', (data) => {
+            const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
+            if(sq) sq.classList.add('ai-selected');
+            setTimeout(() => {
+                if(sq) sq.classList.remove('ai-selected');
+                animateMove(data.from.r, data.from.c, data.to.r, data.to.c, true);
+            }, 1500);
+        });
+
+        socket.on('opponentDisconnected', () => {
+            gameOver = true;
+            showMessage("⚠️ Rakip ayrıldı. Oyun bitti.");
+        });
+
+        function initGameUI() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+        }
+
+        // --- OYUN MANTIĞI (SENİN V12 KODUN) ---
         function showMessage(msg) { document.getElementById('status-bar').textContent = msg; }
         function isWhite(piece) { return "KAFVŞP".includes(piece); }
         function isBlack(piece) { return "kafvşp".includes(piece); }
@@ -58,219 +136,216 @@
         function isFriendly(p1, p2) { return (p1 !== '' && p2 !== '') && ((isWhite(p1) && isWhite(p2)) || (isBlack(p1) && isBlack(p2))); }
         function isOnBoard(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
 
-        socket.on('waiting', (msg) => {
-            showMessage(msg);
-            boardState = []; 
-            createBoard();
-        });
-
-        socket.on('startGame', (data) => {
-            myColor = data.color; 
-            isFlipped = (myColor === 'black'); 
-            
-            showMessage(`Oyun bulundu! Sen ${myColor === 'white' ? 'BEYAZ (Büyük Harfler)' : 'SİYAH (Küçük Harfler)'} tarafısın.`);
-            resetGame();
-        });
-
-        socket.on('opponentMove', (moveData) => {
-            animateMove(moveData.from.r, moveData.from.c, moveData.to.r, moveData.to.c, false);
-        });
+        function setDifficulty(level) { aiDepth = parseInt(level); }
 
         function resetGame() {
+            gameId++;
             boardState = [
                 ['k', 'a', 'f', 'v', 'ş', 'f', 'a', 'k'],
                 ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-                ['', '', '', '', '', '', '', ''],
-                ['', '', '', '', '', '', '', ''],
-                ['', '', '', '', '', '', '', ''],
-                ['', '', '', '', '', '', '', ''],
+                ['', '', '', '', '', '', '', ''], ['', '', '', '', '', '', '', ''],
+                ['', '', '', '', '', '', '', ''], ['', '', '', '', '', '', '', ''],
                 ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
                 ['K', 'A', 'F', 'V', 'Ş', 'F', 'A', 'K']
             ];
-            selectedSquare = null;
-            validMoves = [];
-            currentTurn = 'white';
-            isAnimating = false;
-            createCoordinates();
-            createBoard();
+            selectedSquare = null; validMoves = []; currentTurn = 'white'; isAnimating = false; gameOver = false;
+            createCoordinates(); createBoard();
+            showMessage(gameMode === 'pve' ? 'Sıra BEYAZDA. Rakip: Bilgisayar.' : 'Sıra BEYAZDA.');
+        }
+
+        function findKing(color) {
+            let kingChar = color === 'white' ? 'Ş' : 'ş';
+            for (let r = 0; r < 8; r++) { for (let c = 0; c < 8; c++) { if (boardState[r][c] === kingChar) return {r, c}; } }
+            return null;
+        }
+
+        function isSquareUnderAttack(targetR, targetC, attackerColor) {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    let piece = boardState[r][c];
+                    if (piece !== '' && ((attackerColor === 'white' && isWhite(piece)) || (attackerColor === 'black' && isBlack(piece)))) {
+                        if (getPseudoLegalMoves(r, c).some(m => m.r === targetR && m.c === targetC)) return true;
+                    }
+                }
+            }
+            return false;
         }
 
         function getPseudoLegalMoves(r, c) {
-            const piece = boardState[r][c];
-            let moves = [];
-            if (!piece) return moves;
-
-            const isW = isWhite(piece);
-            const pType = piece.toLowerCase(); 
-
+            const piece = boardState[r][c]; let moves = []; if (!piece) return moves;
+            const isW = isWhite(piece); const pType = piece.toLowerCase();
             if (pType === 'p') {
-                const dir = isW ? -1 : 1; 
-                const startRow = isW ? 6 : 1;
+                const dir = isW ? -1 : 1;
                 if (isOnBoard(r + dir, c) && isEmpty(r + dir, c)) {
                     moves.push({r: r + dir, c: c});
-                    if (r === startRow && isEmpty(r + 2 * dir, c)) moves.push({r: r + 2 * dir, c: c});
+                    if (r === (isW ? 6 : 1) && isEmpty(r + 2 * dir, c)) moves.push({r: r + 2 * dir, c: c});
                 }
                 if (isOnBoard(r + dir, c - 1) && isEnemy(piece, boardState[r + dir][c - 1])) moves.push({r: r + dir, c: c - 1});
                 if (isOnBoard(r + dir, c + 1) && isEnemy(piece, boardState[r + dir][c + 1])) moves.push({r: r + dir, c: c + 1});
             }
-
             if (pType === 'a') {
-                const knightMoves = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
-                for (let m of knightMoves) {
-                    const nr = r + m[0], nc = c + m[1];
-                    if (isOnBoard(nr, nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r: nr, c: nc});
-                }
+                [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(m => {
+                    let nr = r+m[0], nc = c+m[1]; if(isOnBoard(nr,nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r:nr, c:nc});
+                });
             }
-
-            const getSlidingMoves = (dirs) => {
-                for (let d of dirs) {
-                    let nr = r + d[0], nc = c + d[1];
-                    while (isOnBoard(nr, nc)) {
-                        if (isEmpty(nr, nc)) { moves.push({r: nr, c: nc}); } 
-                        else {
-                            if (isEnemy(piece, boardState[nr][nc])) moves.push({r: nr, c: nc}); 
-                            break; 
-                        }
-                        nr += d[0]; nc += d[1];
-                    }
+            const slide = (ds) => ds.forEach(d => {
+                let nr = r+d[0], nc = c+d[1];
+                while(isOnBoard(nr,nc)) {
+                    if(isEmpty(nr,nc)) moves.push({r:nr, c:nc});
+                    else { if(isEnemy(piece, boardState[nr][nc])) moves.push({r:nr, c:nc}); break; }
+                    nr += d[0]; nc += d[1];
                 }
-            };
-
-            if (pType === 'k') getSlidingMoves([[-1,0], [1,0], [0,-1], [0,1]]);
-            if (pType === 'f') getSlidingMoves([[-1,-1], [-1,1], [1,-1], [1,1]]);
-            if (pType === 'v') getSlidingMoves([[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]]);
-            if (pType === 'ş') {
-                const kingMoves = [[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]];
-                for (let m of kingMoves) {
-                    const nr = r + m[0], nc = c + m[1];
-                    if (isOnBoard(nr, nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r: nr, c: nc});
-                }
+            });
+            if(pType === 'k') slide([[-1,0],[1,0],[0,-1],[0,1]]);
+            if(pType === 'f') slide([[-1,-1],[-1,1],[1,-1],[1,1]]);
+            if(pType === 'v') slide([[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]);
+            if(pType === 'ş') {
+                [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]].forEach(m => {
+                    let nr = r+m[0], nc = c+m[1]; if(isOnBoard(nr,nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r:nr, c:nc});
+                });
             }
             return moves;
         }
 
-        function getValidMoves(r, c) { return getPseudoLegalMoves(r, c); }
+        function getValidMoves(r, c) {
+            let pseudo = getPseudoLegalMoves(r, c); let valid = [];
+            let p = boardState[r][c]; let color = isWhite(p) ? 'white' : 'black';
+            pseudo.forEach(m => {
+                let old = boardState[m.r][m.c]; boardState[r][c] = ''; boardState[m.r][m.c] = p;
+                let k = findKing(color); if (k && !isSquareUnderAttack(k.r, k.c, color === 'white' ? 'black' : 'white')) valid.push(m);
+                boardState[m.r][m.c] = old; boardState[r][c] = p;
+            });
+            return valid;
+        }
+
+        function checkGameState() {
+            let moves = getAllValidMoves(currentTurn);
+            let k = findKing(currentTurn);
+            let isCheck = isSquareUnderAttack(k.r, k.c, currentTurn === 'white' ? 'black' : 'white');
+            if (moves.length === 0) {
+                gameOver = true;
+                showMessage(isCheck ? `🏆 ŞAH MAT! ${currentTurn === 'white' ? 'Siyahlar' : 'Beyazlar'} kazandı.` : "🤝 PAT!");
+            } else if (isCheck) {
+                document.getElementById('status-bar').style.color = "#ff3333";
+                showMessage(`⚠️ ŞAH! Sıra ${currentTurn === 'white' ? 'BEYAZDA' : 'SİYAHTA'}.`);
+            } else {
+                document.getElementById('status-bar').style.color = "#aaaaaa";
+                showMessage(`Sıra ${currentTurn === 'white' ? 'BEYAZDA' : 'SİYAHTA'}.`);
+            }
+        }
+
+        function animateMove(sR, sC, eR, eC, isRemote = false) {
+            isAnimating = true; let p = boardState[sR][sC];
+            boardState[sR][sC] = ''; createBoard();
+            const ghost = document.createElement('div'); ghost.classList.add('animated-piece'); ghost.textContent = p;
+            let sX = isFlipped ? (7-sC)*80 : sC*80, sY = isFlipped ? (7-sR)*80 : sR*80;
+            let eX = isFlipped ? (7-eC)*80 : eC*80, eY = isFlipped ? (7-eR)*80 : eR*80;
+            ghost.style.left = sX+'px'; ghost.style.top = sY+'px';
+            document.getElementById('animation-layer').appendChild(ghost);
+            setTimeout(() => { ghost.style.left = eX+'px'; ghost.style.top = eY+'px'; }, 10);
+            setTimeout(() => {
+                document.getElementById('animation-layer').innerHTML = ''; boardState[eR][eC] = p;
+                currentTurn = currentTurn === 'white' ? 'black' : 'white';
+                isAnimating = false; checkGameState(); createBoard();
+                if(!isRemote && gameMode === 'online') socket.emit('move', { from: {r:sR, c:sC}, to: {r:eR, c:eC}, roomID: currentRoom });
+                if(!gameOver && gameMode === 'pve' && currentTurn === 'black') setTimeout(makeAIMove, 500);
+            }, 600);
+        }
+
+        function handleSquareClick(r, c) {
+            if (isAnimating || gameOver) return;
+            if (gameMode === 'online' && currentTurn !== myRole) return;
+            if (gameMode === 'pve' && currentTurn === 'black') return;
+
+            if (selectedSquare && validMoves.some(m => m.r === r && m.c === c)) {
+                animateMove(selectedSquare.row, selectedSquare.col, r, c);
+                selectedSquare = null; validMoves = [];
+            } else {
+                let p = boardState[r][c];
+                if (p && ((currentTurn === 'white' && isWhite(p)) || (currentTurn === 'black' && isBlack(p)))) {
+                    validMoves = getValidMoves(r, c);
+                    selectedSquare = { row: r, col: c, cantMove: validMoves.length === 0 };
+                    createBoard();
+                }
+            }
+        }
 
         function createCoordinates() {
-            const ranksEl = document.getElementById('ranks');
-            const filesEl = document.getElementById('files');
-            ranksEl.innerHTML = ''; filesEl.innerHTML = '';
-
-            for (let i = isFlipped ? 1 : 8; isFlipped ? i <= 8 : i >= 1; isFlipped ? i++ : i--) {
-                ranksEl.appendChild(Object.assign(document.createElement('div'), {textContent: i})); 
-            }
-            
-            let filesList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-            if (isFlipped) filesList.reverse();
-            for (let i = 0; i < 8; i++) { 
-                filesEl.appendChild(Object.assign(document.createElement('div'), {textContent: filesList[i]})); 
-            }
+            const rs = document.getElementById('ranks'), fs = document.getElementById('files');
+            rs.innerHTML = ''; fs.innerHTML = '';
+            for (let i = isFlipped ? 1 : 8; isFlipped ? i <= 8 : i >= 1; isFlipped ? i++ : i--) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
+            let fls = isFlipped ? ['H','G','F','E','D','C','B','A'] : ['A','B','C','D','E','F','G','H'];
+            fls.forEach(f => fs.appendChild(Object.assign(document.createElement('div'), {textContent: f})));
         }
 
         function createBoard() {
-            const boardElement = document.getElementById('board');
-            boardElement.innerHTML = '';
-
-            let startRow = isFlipped ? 7 : 0, endRow = isFlipped ? -1 : 8, stepRow = isFlipped ? -1 : 1;
-            let startCol = isFlipped ? 7 : 0, endCol = isFlipped ? -1 : 8, stepCol = isFlipped ? -1 : 1;
-
-            for (let row = startRow; row !== endRow; row += stepRow) {
-                for (let col = startCol; col !== endCol; col += stepCol) {
-                    const square = document.createElement('div');
-                    square.classList.add('square');
-                    square.id = `sq-${row}-${col}`;
-                    
-                    if (boardState[row] && boardState[row][col] !== '') {
-                        const pieceSpan = document.createElement('span');
-                        pieceSpan.classList.add('piece');
-                        pieceSpan.textContent = boardState[row][col];
-                        square.appendChild(pieceSpan);
-                    }
-
-                    square.onclick = () => handleSquareClick(row, col);
-
-                    if (selectedSquare && selectedSquare.row === row && selectedSquare.col === col) square.classList.add('selected');
-                    if (validMoves.some(m => m.r === row && m.c === col)) square.classList.add('valid-move');
-
-                    boardElement.appendChild(square);
+            const b = document.getElementById('board'); b.innerHTML = '';
+            for (let r = isFlipped?7:0; isFlipped?r>=0:r<8; isFlipped?r--:r++) {
+                for (let c = isFlipped?7:0; isFlipped?c>=0:c<8; isFlipped?c--:c++) {
+                    const s = document.createElement('div'); s.classList.add('square'); s.id = `sq-${r}-${c}`;
+                    if (boardState[r][c]) s.innerHTML = `<span class="piece">${boardState[r][c]}</span>`;
+                    s.onclick = () => handleSquareClick(r, c);
+                    if (selectedSquare && selectedSquare.row === r && selectedSquare.col === c) s.classList.add(selectedSquare.cantMove ? 'cant-move' : 'selected');
+                    if (validMoves.some(m => m.r === r && m.c === c)) s.classList.add('valid-move');
+                    b.appendChild(s);
                 }
             }
         }
 
-        function animateMove(startRow, startCol, endRow, endCol, isMyMove = false) {
-            isAnimating = true; 
-            const pieceToMove = boardState[startRow][startCol];
-            const animationLayer = document.getElementById('animation-layer');
-            
-            boardState[startRow][startCol] = '';
-            validMoves = [];
-            selectedSquare = null;
-            createBoard();
-
-            const ghostPiece = document.createElement('div');
-            ghostPiece.classList.add('animated-piece');
-            ghostPiece.textContent = pieceToMove;
-            
-            let startX = isFlipped ? (7 - startCol) * 80 : startCol * 80;
-            let startY = isFlipped ? (7 - startRow) * 80 : startRow * 80;
-            let endX = isFlipped ? (7 - endCol) * 80 : endCol * 80;
-            let endY = isFlipped ? (7 - endRow) * 80 : endRow * 80;
-
-            ghostPiece.style.left = `${startX}px`;
-            ghostPiece.style.top = `${startY}px`;
-            animationLayer.appendChild(ghostPiece);
-
-            setTimeout(() => {
-                ghostPiece.style.left = `${endX}px`;
-                ghostPiece.style.top = `${endY}px`;
-            }, 10);
-
-            setTimeout(() => {
-                animationLayer.innerHTML = '';
-                boardState[endRow][endCol] = pieceToMove;
-                currentTurn = currentTurn === 'white' ? 'black' : 'white';
-                isAnimating = false;
-                
-                if (isMyMove) {
-                    socket.emit('makeMove', { from: {r: startRow, c: startCol}, to: {r: endRow, c: endCol} });
-                }
-
-                showMessage(currentTurn === myColor ? "Sıra SENDE." : "Rakibin hamlesi bekleniyor...");
-                createBoard(); 
-            }, 600); 
+        // --- AI (SENİN V12 KODUN) ---
+        const pValues = { 'p': 10, 'a': 30, 'f': 30, 'k': 50, 'v': 90, 'ş': 900, 'P': -10, 'A': -30, 'F': -30, 'K': -50, 'V': -90, 'Ş': -900 };
+        function evaluateBoard() {
+            let s = 0;
+            for(let r=0; r<8; r++) { for(let c=0; c<8; c++) { let p = boardState[r][c]; if(p) s += pValues[p]; } }
+            return s;
         }
-
-        function handleSquareClick(row, col) {
-            if (isAnimating || myColor === null) return; 
-            if (myColor !== currentTurn) {
-                showMessage("Şu an sıra rakipte!");
-                return;
-            }
-            
-            const clickedPiece = boardState[row][col];
-
-            if (selectedSquare) {
-                if (selectedSquare.row === row && selectedSquare.col === col) {
-                    selectedSquare = null;
-                    validMoves = [];
-                    createBoard(); 
-                } 
-                else if (validMoves.some(m => m.r === row && m.c === col)) {
-                    animateMove(selectedSquare.row, selectedSquare.col, row, col, true);
-                } 
-                else if (isFriendly(boardState[selectedSquare.row][selectedSquare.col], clickedPiece)) {
-                    selectedSquare = { row, col };
-                    validMoves = getValidMoves(row, col);
-                    createBoard();
+        function getAllValidMoves(color) {
+            let ms = [];
+            for(let r=0; r<8; r++) { for(let c=0; c<8; c++) { if(boardState[r][c] && (color==='white'?isWhite(boardState[r][c]):isBlack(boardState[r][c]))) {
+                getValidMoves(r,c).forEach(v => ms.push({from:{r,c}, to:{r:v.r, c:v.c}}));
+            } } }
+            return ms;
+        }
+        function minimax(d, a, b, maxing) {
+            if (d === 0 || gameOver) return evaluateBoard();
+            let ms = getAllValidMoves(maxing ? 'black' : 'white');
+            if (ms.length === 0) return maxing ? -9999 : 9999;
+            if (maxing) {
+                let res = -Infinity;
+                for(let m of ms) {
+                    let old = boardState[m.to.r][m.to.c], p = boardState[m.from.r][m.from.c];
+                    boardState[m.from.r][m.from.c] = ''; boardState[m.to.r][m.to.c] = p;
+                    res = Math.max(res, minimax(d-1, a, b, false));
+                    boardState[m.to.r][m.to.c] = old; boardState[m.from.r][m.from.c] = p;
+                    a = Math.max(a, res); if(b <= a) break;
                 }
-            } 
-            else if (clickedPiece !== '') {
-                if ((currentTurn === 'white' && isWhite(clickedPiece)) || (currentTurn === 'black' && isBlack(clickedPiece))) {
-                    selectedSquare = { row, col };
-                    validMoves = getValidMoves(row, col);
-                    createBoard();
+                return res;
+            } else {
+                let res = Infinity;
+                for(let m of ms) {
+                    let old = boardState[m.to.r][m.to.c], p = boardState[m.from.r][m.from.c];
+                    boardState[m.from.r][m.from.c] = ''; boardState[m.to.r][m.to.c] = p;
+                    res = Math.min(res, minimax(d-1, a, b, true));
+                    boardState[m.to.r][m.to.c] = old; boardState[m.from.r][m.from.c] = p;
+                    b = Math.min(b, res); if(b <= a) break;
                 }
+                return res;
             }
+        }
+        function makeAIMove() {
+            let ms = getAllValidMoves('black'); if(ms.length === 0) return;
+            let best = -Infinity, choices = [];
+            ms.forEach(m => {
+                let old = boardState[m.to.r][m.to.c], p = boardState[m.from.r][m.from.c];
+                boardState[m.from.r][m.from.c] = ''; boardState[m.to.r][m.to.c] = p;
+                let s = minimax(aiDepth-1, -Infinity, Infinity, false);
+                boardState[m.to.r][m.to.c] = old; boardState[m.from.r][m.from.c] = p;
+                if(s > best) { best = s; choices = [m]; } else if(s === best) choices.push(m);
+            });
+            let chosen = choices[Math.floor(Math.random()*choices.length)];
+            const sq = document.getElementById(`sq-${chosen.from.r}-${chosen.from.c}`);
+            if(sq) sq.classList.add('ai-selected');
+            setTimeout(() => { if(sq) sq.classList.remove('ai-selected'); animateMove(chosen.from.r, chosen.from.c, chosen.to.r, chosen.to.c); }, 1500);
         }
     </script>
 </body>

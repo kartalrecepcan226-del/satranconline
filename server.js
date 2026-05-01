@@ -1,39 +1,45 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const server = http.createServer(app);
+const io = new Server(server);
 
-app.use(express.static(__dirname)); 
+app.use(express.static(__dirname));
 
-let waitingPlayer = null; 
+let rooms = {}; 
 
 io.on('connection', (socket) => {
-    console.log('Bir oyuncu bağlandı:', socket.id);
+    socket.on('joinRoom', (roomID) => {
+        if (!rooms[roomID]) {
+            rooms[roomID] = [socket.id];
+            socket.join(roomID);
+            socket.emit('playerRole', { role: 'white', roomID });
+        } else if (rooms[roomID].length === 1) {
+            rooms[roomID].push(socket.id);
+            socket.join(roomID);
+            socket.emit('playerRole', { role: 'black', roomID });
+            io.to(roomID).emit('startGame');
+        } else {
+            socket.emit('errorMsg', 'Bu oda dolu.');
+        }
+    });
 
-    if (waitingPlayer) {
-        let roomName = 'room_' + waitingPlayer.id;
-        socket.join(roomName); 
-        waitingPlayer.join(roomName); 
-
-        io.to(waitingPlayer.id).emit('startGame', { color: 'white' });
-        io.to(socket.id).emit('startGame', { color: 'black' });
-
-        waitingPlayer = null; 
-    } else {
-        waitingPlayer = socket;
-        socket.emit('waiting', 'Rakip bekleniyor... Lütfen yeni bir sekme açarak bağlanın.');
-    }
-
-    socket.on('makeMove', (moveData) => {
-        socket.broadcast.to(Array.from(socket.rooms)[1]).emit('opponentMove', moveData);
+    socket.on('move', (data) => {
+        socket.to(data.roomID).emit('move', data);
     });
 
     socket.on('disconnect', () => {
-        console.log('Oyuncu ayrıldı:', socket.id);
-        if (waitingPlayer === socket) { waitingPlayer = null; }
+        for (let roomID in rooms) {
+            if (rooms[roomID].includes(socket.id)) {
+                io.to(roomID).emit('opponentDisconnected');
+                delete rooms[roomID];
+            }
+        }
     });
 });
 
-http.listen(3000, () => {
-    console.log('Sunucu Başladı! Tarayıcınızdan http://localhost:3000 adresine gidin.');
-});
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Sunucu aktif.`));
