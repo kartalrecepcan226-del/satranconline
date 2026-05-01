@@ -3,27 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Online Satranç - V13 (AI & Multiplayer)</title>
+    <title>Erişilebilir Satranç - Online & AI</title>
     <style>
-        body { background-color: #121212; color: #ffffff; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 30px; }
-        #menu { display: flex; gap: 15px; margin-bottom: 15px; align-items: center; background-color: #1e1e1e; padding: 15px 25px; border-radius: 8px; border: 2px solid #333; }
-        #menu button, #menu select, #main-menu button { background-color: #333333; color: #ffffff; border: 1px solid #777; padding: 10px 20px; font-size: 18px; cursor: pointer; border-radius: 5px; transition: 0.2s; }
-        #main-menu { text-align: center; background: #1e1e1e; padding: 40px; border-radius: 15px; border: 2px solid #b89b42; margin-top: 50px; }
-        #main-menu input { padding: 10px; font-size: 18px; border-radius: 5px; border: 1px solid #777; background: #000; color: #fff; width: 200px; margin-bottom: 10px; }
+        body {
+            background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
+            display: flex; flex-direction: column; align-items: center; margin-top: 30px;
+        }
+
+        #main-menu {
+            text-align: center; background: #1e1e1e; padding: 40px; border-radius: 15px; 
+            border: 2px solid #b89b42; margin-top: 50px;
+        }
+
+        #main-menu button {
+            background-color: #333333; color: #ffffff; border: 1px solid #777;
+            padding: 15px 30px; font-size: 20px; cursor: pointer; border-radius: 8px;
+            transition: 0.2s; width: 280px; margin: 10px;
+        }
+
+        #main-menu input {
+            padding: 12px; font-size: 18px; border-radius: 5px; border: 1px solid #777;
+            background: #000; color: #fff; width: 250px; margin-bottom: 10px; text-align: center;
+        }
+
+        #menu {
+            display: flex; gap: 15px; margin-bottom: 15px; align-items: center;
+            background-color: #1e1e1e; padding: 15px 25px; border-radius: 8px; border: 2px solid #333;
+        }
+
+        #menu button, #menu select {
+            background-color: #333333; color: #ffffff; border: 1px solid #777;
+            padding: 10px 20px; font-size: 18px; cursor: pointer; border-radius: 5px;
+            transition: 0.2s;
+        }
+
         #status-bar { font-size: 20px; color: #aaaaaa; margin-bottom: 25px; min-height: 24px; font-weight: bold; }
-        #game-container { display: grid; grid-template-columns: 40px 640px; grid-template-rows: 640px 40px; gap: 5px; position: relative; }
-        #board { display: grid; grid-template-columns: repeat(8, 80px); grid-template-rows: repeat(8, 80px); border: 2px solid #b89b42; }
+        
+        #game-container {
+            display: grid; grid-template-columns: 40px 640px; grid-template-rows: 640px 40px;    
+            gap: 5px; position: relative; 
+        }
+
+        #waiting-overlay {
+            position: absolute; top: 0; left: 45px; width: 640px; height: 640px;
+            background: rgba(0,0,0,0.7); display: flex; justify-content: center;
+            align-items: center; z-index: 200; color: #e6ce55; font-size: 32px; font-weight: bold;
+            border-radius: 5px;
+        }
+
+        #board {
+            display: grid; grid-template-columns: repeat(8, 80px); grid-template-rows: repeat(8, 80px);
+            border: 2px solid #b89b42; 
+        }
+
         .ranks, .files { display: grid; align-items: center; text-align: center; font-size: 22px; color: #aaaaaa; }
         .ranks { grid-template-rows: repeat(8, 80px); }
         .files { grid-template-columns: repeat(8, 80px); }
-        .square { background-color: #000000; color: #ffffff; font-size: 50px; display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none; border: 1px solid #b89b42; position: relative; width: 80px; height: 80px; box-sizing: border-box; }
-        .piece { pointer-events: none; }
+
+        .square {
+            background-color: #000000; color: #ffffff; font-size: 50px; font-weight: normal;   
+            display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none;
+            box-sizing: border-box; border: 1px solid #b89b42; position: relative;
+        }
+
         .selected { border: 3px solid #ffffff; z-index: 2; }
         .cant-move { border: 3px solid #ff3333; z-index: 2; }
-        .valid-move { border: 3px solid #ffffff; animation: pulse-white 1.2s infinite; }
-        .ai-selected { border: 3px solid #ffffff !important; animation: pulse-white 1.2s infinite !important; }
-        @keyframes pulse-white { 0%, 100% { border-color: #ffffff; } 50% { border-color: #444; } }
-        .animated-piece { position: absolute; font-size: 50px; color: #ffffff; width: 80px; height: 80px; display: flex; justify-content: center; align-items: center; z-index: 100; transition: left 0.6s ease-in-out, top 0.6s ease-in-out; pointer-events: none; }
+        .valid-move { border: 3px solid #ffffff; z-index: 2; animation: pulse-white 1.2s infinite; }
+        .ai-selected { border: 3px solid #ffffff !important; z-index: 4 !important; animation: pulse-white 1.2s infinite !important; }
+
+        @keyframes pulse-white {
+            0%, 100% { border-color: #ffffff; outline: 1px solid #ffffff; }
+            50% { border-color: #444444; outline: 1px solid #444444; }
+        }
+        
+        .animated-piece {
+            position: absolute; font-size: 50px; color: #ffffff; display: flex; justify-content: center;
+            align-items: center; width: 80px; height: 80px; z-index: 100;
+            transition: left 0.6s ease-in-out, top 0.6s ease-in-out; pointer-events: none;
+        }
+
+        .error-msg { color: #ff3333; margin-top: 10px; font-weight: bold; min-height: 20px; }
     </style>
 </head>
 <body>
@@ -31,29 +90,34 @@
     <div id="main-menu">
         <h1>♟️ Satranç Online & AI</h1>
         <button onclick="startMode('pve')">Bilgisayara Karşı Oyna</button>
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #444;">
+        <div style="margin-top: 30px; padding: 20px; border: 1px solid #444; border-radius: 10px;">
             <input type="text" id="room-input" placeholder="Oda Adı Girin">
-            <button onclick="startMode('online')">Oda Kur / Katıl</button>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                <button onclick="handleOnline('create')" style="background-color: #2e7d32; width: 135px; font-size: 16px;">Oda Kur</button>
+                <button onclick="handleOnline('join')" style="background-color: #1565c0; width: 135px; font-size: 16px;">Odaya Katıl</button>
+            </div>
+            <div id="menu-error" class="error-msg"></div>
         </div>
     </div>
 
     <div id="game-ui" style="display:none;">
         <div id="menu">
-            <button onclick="location.reload()">🏠 Menü</button>
+            <button onclick="location.reload()">🏠 Menüye Dön</button>
             <div id="ai-controls" style="display:none;">
                 <select id="ai-difficulty" onchange="setDifficulty(this.value)">
-                    <option value="1">Kolay</option>
-                    <option value="2" selected>Orta</option>
-                    <option value="3">Zor</option>
+                    <option value="1">Zorluk: Kolay</option>
+                    <option value="2" selected>Zorluk: Orta</option>
+                    <option value="3">Zorluk: Zor</option>
                 </select>
                 <button onclick="resetGame()">Yeni Oyun</button>
             </div>
-            <span id="role-info" style="margin-left:20px; color:#e6ce55;"></span>
+            <span id="role-display" style="margin-left: 20px; color: #e6ce55; font-weight: bold;"></span>
         </div>
 
         <div id="status-bar">Bağlanılıyor...</div>
 
         <div id="game-container">
+            <div id="waiting-overlay" style="display:none;">Rakip Bekleniyor...</div>
             <div class="ranks" id="ranks"></div>
             <div style="position: relative;">
                 <div id="board"></div>
@@ -70,45 +134,62 @@
         let boardState = [];
         let selectedSquare = null;
         let validMoves = [];
-        let currentTurn = 'white';
-        let isAnimating = false;
+        let currentTurn = 'white'; 
+        let isAnimating = false; 
         let gameOver = false;
-        let gameMode = 'pvp';
+        let gameMode = 'pvp'; 
         let myRole = 'white'; 
         let currentRoom = null;
-        let aiDepth = 2;
-        let isFlipped = false;
-        let gameId = 0;
+        let opponentPresent = false;
+        let gameId = 0; 
+        let aiDepth = 2; 
+        let isFlipped = false; 
         const socket = io();
 
-        // --- ONLINE BAĞLANTILAR ---
+        // --- MENÜ VE ONLINE MANTIĞI ---
         function startMode(mode) {
-            if (mode === 'online') {
-                currentRoom = document.getElementById('room-input').value;
-                if (!currentRoom) return alert("Lütfen bir oda adı girin!");
-                socket.emit('joinRoom', currentRoom);
-            } else {
+            if (mode === 'pve') {
                 gameMode = 'pve';
                 myRole = 'white';
+                opponentPresent = true;
                 document.getElementById('ai-controls').style.display = 'block';
-                initGameUI();
+                initUI();
                 resetGame();
             }
         }
+
+        function handleOnline(action) {
+            const roomID = document.getElementById('room-input').value;
+            if (!roomID) return alert("Lütfen bir oda adı girin!");
+            socket.emit(action === 'create' ? 'createRoom' : 'joinRoom', roomID);
+        }
+
+        function initUI() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+        }
+
+        socket.on('errorMsg', (msg) => { document.getElementById('menu-error').textContent = msg; });
 
         socket.on('playerRole', (data) => {
             myRole = data.role;
             gameMode = 'online';
             currentRoom = data.roomID;
-            document.getElementById('role-info').textContent = `Rolünüz: ${myRole === 'white' ? 'BEYAZ' : 'SİYAH'}`;
-            if (myRole === 'black') { isFlipped = true; } 
-            initGameUI();
+            document.getElementById('role-display').textContent = `Rolünüz: ${myRole === 'white' ? 'BEYAZ' : 'SİYAH'}`;
+            if (myRole === 'black') { isFlipped = true; opponentPresent = true; } 
+            else { document.getElementById('waiting-overlay').style.display = 'flex'; }
+            initUI();
             resetGame();
         });
 
-        socket.on('startGame', () => { showMessage("Rakip bağlandı! Oyun başladı."); });
+        socket.on('startGame', () => {
+            opponentPresent = true;
+            document.getElementById('waiting-overlay').style.display = 'none';
+            showMessage("Rakip bağlandı! Oyun başladı.");
+        });
 
         socket.on('move', (data) => {
+            // Rakip hamlesinde parlama efekti
             const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
             if(sq) sq.classList.add('ai-selected');
             setTimeout(() => {
@@ -119,15 +200,11 @@
 
         socket.on('opponentDisconnected', () => {
             gameOver = true;
-            showMessage("⚠️ Rakip ayrıldı. Oyun bitti.");
+            showMessage("⚠️ Rakip bağlantısı koptu. Oyun bitti.");
+            alert("Rakip oyundan ayrıldı.");
         });
 
-        function initGameUI() {
-            document.getElementById('main-menu').style.display = 'none';
-            document.getElementById('game-ui').style.display = 'block';
-        }
-
-        // --- OYUN MANTIĞI (SENİN V12 KODUN) ---
+        // --- OYUN FONKSİYONLARI (V12'DEN) ---
         function showMessage(msg) { document.getElementById('status-bar').textContent = msg; }
         function isWhite(piece) { return "KAFVŞP".includes(piece); }
         function isBlack(piece) { return "kafvşp".includes(piece); }
@@ -139,7 +216,7 @@
         function setDifficulty(level) { aiDepth = parseInt(level); }
 
         function resetGame() {
-            gameId++;
+            gameId++; 
             boardState = [
                 ['k', 'a', 'f', 'v', 'ş', 'f', 'a', 'k'],
                 ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
@@ -150,7 +227,7 @@
             ];
             selectedSquare = null; validMoves = []; currentTurn = 'white'; isAnimating = false; gameOver = false;
             createCoordinates(); createBoard();
-            showMessage(gameMode === 'pve' ? 'Sıra BEYAZDA. Rakip: Bilgisayar.' : 'Sıra BEYAZDA.');
+            showMessage(`Sıra BEYAZDA.`);
         }
 
         function findKing(color) {
@@ -173,35 +250,40 @@
 
         function getPseudoLegalMoves(r, c) {
             const piece = boardState[r][c]; let moves = []; if (!piece) return moves;
-            const isW = isWhite(piece); const pType = piece.toLowerCase();
+            const isW = isWhite(piece); const pType = piece.toLowerCase(); 
+
             if (pType === 'p') {
-                const dir = isW ? -1 : 1;
+                const dir = isW ? -1 : 1; const startRow = isW ? 6 : 1;
                 if (isOnBoard(r + dir, c) && isEmpty(r + dir, c)) {
                     moves.push({r: r + dir, c: c});
-                    if (r === (isW ? 6 : 1) && isEmpty(r + 2 * dir, c)) moves.push({r: r + 2 * dir, c: c});
+                    if (r === startRow && isEmpty(r + 2 * dir, c)) moves.push({r: r + 2 * dir, c: c});
                 }
                 if (isOnBoard(r + dir, c - 1) && isEnemy(piece, boardState[r + dir][c - 1])) moves.push({r: r + dir, c: c - 1});
                 if (isOnBoard(r + dir, c + 1) && isEnemy(piece, boardState[r + dir][c + 1])) moves.push({r: r + dir, c: c + 1});
             }
             if (pType === 'a') {
                 [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(m => {
-                    let nr = r+m[0], nc = c+m[1]; if(isOnBoard(nr,nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r:nr, c:nc});
+                    let nr = r + m[0], nc = c + m[1];
+                    if (isOnBoard(nr, nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r: nr, c: nc});
                 });
             }
-            const slide = (ds) => ds.forEach(d => {
-                let nr = r+d[0], nc = c+d[1];
-                while(isOnBoard(nr,nc)) {
-                    if(isEmpty(nr,nc)) moves.push({r:nr, c:nc});
-                    else { if(isEnemy(piece, boardState[nr][nc])) moves.push({r:nr, c:nc}); break; }
-                    nr += d[0]; nc += d[1];
-                }
-            });
-            if(pType === 'k') slide([[-1,0],[1,0],[0,-1],[0,1]]);
-            if(pType === 'f') slide([[-1,-1],[-1,1],[1,-1],[1,1]]);
-            if(pType === 'v') slide([[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]);
-            if(pType === 'ş') {
-                [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]].forEach(m => {
-                    let nr = r+m[0], nc = c+m[1]; if(isOnBoard(nr,nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r:nr, c:nc});
+            const getSliding = (dirs) => {
+                dirs.forEach(d => {
+                    let nr = r + d[0], nc = c + d[1];
+                    while (isOnBoard(nr, nc)) {
+                        if (isEmpty(nr, nc)) { moves.push({r: nr, c: nc}); } 
+                        else { if (isEnemy(piece, boardState[nr][nc])) moves.push({r: nr, c: nc}); break; }
+                        nr += d[0]; nc += d[1];
+                    }
+                });
+            };
+            if (pType === 'k') getSliding([[-1,0], [1,0], [0,-1], [0,1]]);
+            if (pType === 'f') getSliding([[-1,-1], [-1,1], [1,-1], [1,1]]);
+            if (pType === 'v') getSliding([[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]]);
+            if (pType === 'ş') {
+                [[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]].forEach(m => {
+                    let nr = r + m[0], nc = c + m[1];
+                    if (isOnBoard(nr, nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r: nr, c: nc});
                 });
             }
             return moves;
@@ -209,34 +291,44 @@
 
         function getValidMoves(r, c) {
             let pseudo = getPseudoLegalMoves(r, c); let valid = [];
-            let p = boardState[r][c]; let color = isWhite(p) ? 'white' : 'black';
-            pseudo.forEach(m => {
-                let old = boardState[m.r][m.c]; boardState[r][c] = ''; boardState[m.r][m.c] = p;
-                let k = findKing(color); if (k && !isSquareUnderAttack(k.r, k.c, color === 'white' ? 'black' : 'white')) valid.push(m);
-                boardState[m.r][m.c] = old; boardState[r][c] = p;
+            let original = boardState[r][c]; let color = isWhite(original) ? 'white' : 'black';
+            pseudo.forEach(move => {
+                let target = boardState[move.r][move.c];
+                boardState[r][c] = ''; boardState[move.r][move.c] = original;
+                let king = findKing(color);
+                if (king && !isSquareUnderAttack(king.r, king.c, color === 'white' ? 'black' : 'white')) valid.push(move);
+                boardState[move.r][move.c] = target; boardState[r][c] = original;
             });
             return valid;
         }
 
         function checkGameState() {
-            let moves = getAllValidMoves(currentTurn);
-            let k = findKing(currentTurn);
-            let isCheck = isSquareUnderAttack(k.r, k.c, currentTurn === 'white' ? 'black' : 'white');
-            if (moves.length === 0) {
+            let hasMove = false; let myColor = currentTurn;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    let p = boardState[r][c];
+                    if (p !== '' && ((myColor === 'white' && isWhite(p)) || (myColor === 'black' && isBlack(p)))) {
+                        if (getValidMoves(r, c).length > 0) { hasMove = true; break; }
+                    }
+                }
+                if (hasMove) break;
+            }
+            let king = findKing(myColor); let isCheck = isSquareUnderAttack(king.r, king.c, myColor === 'white' ? 'black' : 'white');
+            if (!hasMove) {
                 gameOver = true;
-                showMessage(isCheck ? `🏆 ŞAH MAT! ${currentTurn === 'white' ? 'Siyahlar' : 'Beyazlar'} kazandı.` : "🤝 PAT!");
+                showMessage(isCheck ? `🏆 ŞAH MAT! ${myColor === 'white' ? 'Siyahlar' : 'Beyazlar'} kazandı.` : "🤝 PAT!");
             } else if (isCheck) {
                 document.getElementById('status-bar').style.color = "#ff3333";
-                showMessage(`⚠️ ŞAH! Sıra ${currentTurn === 'white' ? 'BEYAZDA' : 'SİYAHTA'}.`);
+                showMessage(`⚠️ ŞAH! Sıra ${myColor === 'white' ? 'BEYAZDA' : 'SİYAHTA'}.`);
             } else {
                 document.getElementById('status-bar').style.color = "#aaaaaa";
-                showMessage(`Sıra ${currentTurn === 'white' ? 'BEYAZDA' : 'SİYAHTA'}.`);
+                showMessage(`Sıra ${myColor === 'white' ? 'BEYAZDA' : 'SİYAHTA'}.`);
             }
         }
 
         function animateMove(sR, sC, eR, eC, isRemote = false) {
             isAnimating = true; let p = boardState[sR][sC];
-            boardState[sR][sC] = ''; createBoard();
+            boardState[sR][sC] = ''; selectedSquare = null; validMoves = []; createBoard();
             const ghost = document.createElement('div'); ghost.classList.add('animated-piece'); ghost.textContent = p;
             let sX = isFlipped ? (7-sC)*80 : sC*80, sY = isFlipped ? (7-sR)*80 : sR*80;
             let eX = isFlipped ? (7-eC)*80 : eC*80, eY = isFlipped ? (7-eR)*80 : eR*80;
@@ -248,32 +340,41 @@
                 currentTurn = currentTurn === 'white' ? 'black' : 'white';
                 isAnimating = false; checkGameState(); createBoard();
                 if(!isRemote && gameMode === 'online') socket.emit('move', { from: {r:sR, c:sC}, to: {r:eR, c:eC}, roomID: currentRoom });
-                if(!gameOver && gameMode === 'pve' && currentTurn === 'black') setTimeout(makeAIMove, 500);
+                if(!gameOver && gameMode === 'pve' && currentTurn === 'black') setTimeout(makeAIMove, 50);
             }, 600);
         }
 
         function handleSquareClick(r, c) {
             if (isAnimating || gameOver) return;
-            if (gameMode === 'online' && currentTurn !== myRole) return;
+            if (gameMode === 'online') {
+                if (!opponentPresent || currentTurn !== myRole) return;
+            }
             if (gameMode === 'pve' && currentTurn === 'black') return;
 
-            if (selectedSquare && validMoves.some(m => m.r === r && m.c === c)) {
-                animateMove(selectedSquare.row, selectedSquare.col, r, c);
-                selectedSquare = null; validMoves = [];
-            } else {
-                let p = boardState[r][c];
-                if (p && ((currentTurn === 'white' && isWhite(p)) || (currentTurn === 'black' && isBlack(p)))) {
-                    validMoves = getValidMoves(r, c);
-                    selectedSquare = { row: r, col: c, cantMove: validMoves.length === 0 };
-                    createBoard();
+            const clicked = boardState[r][c];
+            if (selectedSquare) {
+                if (validMoves.some(m => m.r === r && m.c === c)) {
+                    animateMove(selectedSquare.row, selectedSquare.col, r, c);
+                } else if (isFriendly(boardState[selectedSquare.row][selectedSquare.col], clicked)) {
+                    let v = getValidMoves(r, c);
+                    selectedSquare = { row: r, col: c, cantMove: v.length === 0 };
+                    validMoves = v; createBoard();
+                } else {
+                    selectedSquare = null; validMoves = []; createBoard();
                 }
+            } else if (clicked !== '' && ((currentTurn === 'white' && isWhite(clicked)) || (currentTurn === 'black' && isBlack(clicked)))) {
+                let v = getValidMoves(r, c);
+                selectedSquare = { row: r, col: c, cantMove: v.length === 0 };
+                validMoves = v; createBoard();
             }
         }
 
         function createCoordinates() {
             const rs = document.getElementById('ranks'), fs = document.getElementById('files');
             rs.innerHTML = ''; fs.innerHTML = '';
-            for (let i = isFlipped ? 1 : 8; isFlipped ? i <= 8 : i >= 1; isFlipped ? i++ : i--) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
+            for (let i = isFlipped ? 1 : 8; isFlipped ? i <= 8 : i >= 1; isFlipped ? i++ : i--) {
+                rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
+            }
             let fls = isFlipped ? ['H','G','F','E','D','C','B','A'] : ['A','B','C','D','E','F','G','H'];
             fls.forEach(f => fs.appendChild(Object.assign(document.createElement('div'), {textContent: f})));
         }
@@ -292,60 +393,68 @@
             }
         }
 
-        // --- AI (SENİN V12 KODUN) ---
-        const pValues = { 'p': 10, 'a': 30, 'f': 30, 'k': 50, 'v': 90, 'ş': 900, 'P': -10, 'A': -30, 'F': -30, 'K': -50, 'V': -90, 'Ş': -900 };
+        // --- AI (V12'DEN) ---
+        const pVals = { 'p': 10, 'a': 30, 'f': 30, 'k': 50, 'v': 90, 'ş': 900, 'P': -10, 'A': -30, 'F': -30, 'K': -50, 'V': -90, 'Ş': -900 };
         function evaluateBoard() {
-            let s = 0;
-            for(let r=0; r<8; r++) { for(let c=0; c<8; c++) { let p = boardState[r][c]; if(p) s += pValues[p]; } }
-            return s;
+            let sc = 0;
+            for(let r=0; r<8; r++) { for(let c=0; c<8; c++) { let p = boardState[r][c]; if(p) sc += pVals[p]; } }
+            return sc;
         }
         function getAllValidMoves(color) {
             let ms = [];
-            for(let r=0; r<8; r++) { for(let c=0; c<8; c++) { if(boardState[r][c] && (color==='white'?isWhite(boardState[r][c]):isBlack(boardState[r][c]))) {
-                getValidMoves(r,c).forEach(v => ms.push({from:{r,c}, to:{r:v.r, c:v.c}}));
-            } } }
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (boardState[r][c] !== '' && (color==='white'?isWhite(boardState[r][c]):isBlack(boardState[r][c]))) {
+                        getValidMoves(r, c).forEach(v => ms.push({ from: {r, c}, to: {r: v.r, c: v.c} }));
+                    }
+                }
+            }
             return ms;
         }
-        function minimax(d, a, b, maxing) {
-            if (d === 0 || gameOver) return evaluateBoard();
-            let ms = getAllValidMoves(maxing ? 'black' : 'white');
-            if (ms.length === 0) return maxing ? -9999 : 9999;
-            if (maxing) {
-                let res = -Infinity;
-                for(let m of ms) {
+        function minimax(depth, alpha, beta, isMax) {
+            if (depth === 0 || gameOver) return evaluateBoard();
+            let color = isMax ? 'black' : 'white';
+            let ms = getAllValidMoves(color);
+            if (ms.length === 0) return isMax ? -9999 : 9999;
+            if (isMax) {
+                let mEval = -Infinity;
+                for (let m of ms) {
                     let old = boardState[m.to.r][m.to.c], p = boardState[m.from.r][m.from.c];
                     boardState[m.from.r][m.from.c] = ''; boardState[m.to.r][m.to.c] = p;
-                    res = Math.max(res, minimax(d-1, a, b, false));
+                    mEval = Math.max(mEval, minimax(depth - 1, alpha, beta, false));
                     boardState[m.to.r][m.to.c] = old; boardState[m.from.r][m.from.c] = p;
-                    a = Math.max(a, res); if(b <= a) break;
+                    alpha = Math.max(alpha, mEval); if (beta <= alpha) break;
                 }
-                return res;
+                return mEval;
             } else {
-                let res = Infinity;
-                for(let m of ms) {
+                let mEval = Infinity;
+                for (let m of ms) {
                     let old = boardState[m.to.r][m.to.c], p = boardState[m.from.r][m.from.c];
                     boardState[m.from.r][m.from.c] = ''; boardState[m.to.r][m.to.c] = p;
-                    res = Math.min(res, minimax(d-1, a, b, true));
+                    mEval = Math.min(mEval, minimax(depth - 1, alpha, beta, true));
                     boardState[m.to.r][m.to.c] = old; boardState[m.from.r][m.from.c] = p;
-                    b = Math.min(b, res); if(b <= a) break;
+                    beta = Math.min(beta, mEval); if (beta <= alpha) break;
                 }
-                return res;
+                return mEval;
             }
         }
         function makeAIMove() {
-            let ms = getAllValidMoves('black'); if(ms.length === 0) return;
+            let ms = getAllValidMoves('black'); if (ms.length === 0) return;
             let best = -Infinity, choices = [];
             ms.forEach(m => {
                 let old = boardState[m.to.r][m.to.c], p = boardState[m.from.r][m.from.c];
                 boardState[m.from.r][m.from.c] = ''; boardState[m.to.r][m.to.c] = p;
-                let s = minimax(aiDepth-1, -Infinity, Infinity, false);
+                let sc = minimax(aiDepth - 1, -Infinity, Infinity, false);
                 boardState[m.to.r][m.to.c] = old; boardState[m.from.r][m.from.c] = p;
-                if(s > best) { best = s; choices = [m]; } else if(s === best) choices.push(m);
+                if (sc > best) { best = sc; choices = [m]; } else if (sc === best) choices.push(m);
             });
-            let chosen = choices[Math.floor(Math.random()*choices.length)];
+            let chosen = choices[Math.floor(Math.random() * choices.length)];
             const sq = document.getElementById(`sq-${chosen.from.r}-${chosen.from.c}`);
             if(sq) sq.classList.add('ai-selected');
-            setTimeout(() => { if(sq) sq.classList.remove('ai-selected'); animateMove(chosen.from.r, chosen.from.c, chosen.to.r, chosen.to.c); }, 1500);
+            setTimeout(() => {
+                if(sq) sq.classList.remove('ai-selected');
+                animateMove(chosen.from.r, chosen.from.c, chosen.to.r, chosen.to.c);
+            }, 1500);
         }
     </script>
 </body>
