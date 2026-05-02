@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Erişilebilir Satranç - Online & AI (V15)</title>
+    <title>Erişilebilir Satranç - Online & AI</title>
     <style>
         body {
             background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
@@ -42,7 +42,7 @@
         
         #game-container {
             display: grid; grid-template-columns: 30px 1fr; grid-template-rows: 1fr 30px;    
-            gap: 2px; position: relative; width: 95vw; max-width: 600px;
+            gap: 2px; position: relative; width: 95vw; max-aspect-ratio: 1/1; max-width: 600px;
         }
 
         #board {
@@ -59,30 +59,38 @@
             display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none;
             box-sizing: border-box; border: 0.5px solid #b89b42; position: relative;
         }
-
         @media (min-width: 600px) { .square { font-size: 45px; } .ranks, .files { font-size: 20px; } }
 
-        /* GÖRSEL EFEKTLER GÜNCELLENDİ */
-        .selected { border: 4px solid #ffffff !important; z-index: 10; } /* Dokunan kişide kalın sabit beyaz */
+        /* GÖRSEL ÇERÇEVE MANTIĞI */
+        .selected { border: 4px solid #ffffff !important; z-index: 10; } /* Seçen tarafta SABİT beyaz */
+        .cant-move { border: 4px solid #ff3333 !important; z-index: 10; } /* Yanlış taşta SABİT kırmızı */
         
         .opponent-selecting { 
             border: 4px solid #ffffff !important; 
-            animation: blink-white 1s infinite; /* Rakipte yanıp sönen kalın beyaz */
+            animation: blink-frame 1s infinite; /* Rakipte YANIP SÖNEN beyaz */
             z-index: 10; 
         }
 
         .ai-selected { 
             border: 4px solid #ffffff !important; 
             z-index: 10; 
-        } /* Hamle yapıldığında rakipte 2 saniye sabit yanan kalın beyaz */
+        } /* Hamle gelince rakipte 2 saniye SABİT beyaz */
 
-        @keyframes blink-white {
-            0%, 100% { border-color: #ffffff; opacity: 1; }
-            50% { border-color: transparent; opacity: 0.3; }
+        .valid-move { 
+            border: 3px solid #ffffff; 
+            z-index: 5; 
+            animation: pulse-move 1.5s infinite; /* Oynanabilir kareler eskisi gibi pulse */
         }
 
-        .valid-move { border: 3px solid #ffffff; z-index: 2; opacity: 0.8; }
-        .cant-move { border: 4px solid #ff3333 !important; z-index: 10; }
+        @keyframes blink-frame {
+            0%, 100% { border-color: #ffffff; }
+            50% { border-color: transparent; }
+        }
+
+        @keyframes pulse-move {
+            0%, 100% { border-color: #ffffff; opacity: 1; }
+            50% { border-color: #444444; opacity: 0.5; }
+        }
 
         .animated-piece {
             position: absolute; font-size: 8vw; color: #ffffff; display: flex; justify-content: center;
@@ -105,10 +113,8 @@
         <button onclick="startMode('pve')">🤖 Bilgisayara Karşı</button>
         <div style="margin-top: 20px; padding: 15px; border-top: 1px solid #444;">
             <input type="text" id="room-input" placeholder="Oda Adı">
-            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                <button onclick="handleOnline('create')" style="background-color: #2e7d32;">Oda Kur</button>
-                <button onclick="handleOnline('join')" style="background-color: #1565c0;">Odaya Katıl</button>
-            </div>
+            <button onclick="handleOnline('create')" style="background-color: #2e7d32;">Oda Kur</button>
+            <button onclick="handleOnline('join')" style="background-color: #1565c0;">Odaya Katıl</button>
             <div id="menu-error" style="color: #ff3333; font-size: 14px; margin-top: 10px;"></div>
         </div>
     </div>
@@ -178,14 +184,12 @@
             updateStatusBar();
         });
 
-        // RAKİP TAŞA DOKUNDUĞUNDA: Kalın beyaz yanıp sönsün
         socket.on('opponentSelected', (data) => {
             clearVisuals();
             const sq = document.getElementById(`sq-${data.r}-${data.c}`);
             if (sq) sq.classList.add('opponent-selecting');
         });
 
-        // RAKİP TAŞLA OYNADIĞINDA: Dokunma bitsin, 2 saniye SABİT kalın beyaz yansın
         socket.on('move', (data) => {
             clearVisuals();
             const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
@@ -193,7 +197,7 @@
             setTimeout(() => {
                 if(sq) sq.classList.remove('ai-selected');
                 animateMove(data.from.r, data.from.c, data.to.r, data.to.c, true);
-            }, 2000); // 2 saniye sabit yanma
+            }, 2000); 
         });
 
         function clearVisuals() {
@@ -363,7 +367,12 @@
 
         function selectPiece(r, c) {
             let v = getValidMoves(r, c);
-            selectedSquare = { row: r, col: c, cantMove: v.length === 0 };
+            if (v.length === 0) {
+                selectedSquare = { row: r, col: c, cantMove: true };
+                createBoard();
+                return;
+            }
+            selectedSquare = { row: r, col: c, cantMove: false };
             validMoves = v; createBoard();
             if (gameMode === 'online') socket.emit('selectPiece', { r, c, roomID: currentRoom });
         }
