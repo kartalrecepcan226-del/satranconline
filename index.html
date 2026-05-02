@@ -2,99 +2,106 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Erişilebilir Satranç - Online & AI</title>
     <style>
         body {
             background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
-            display: flex; flex-direction: column; align-items: center; margin-top: 30px;
+            display: flex; flex-direction: column; align-items: center; margin: 0; padding-top: 20px;
+            overflow-x: hidden;
         }
 
         #main-menu {
-            text-align: center; background: #1e1e1e; padding: 40px; border-radius: 15px; 
-            border: 2px solid #b89b42; margin-top: 50px;
+            text-align: center; background: #1e1e1e; padding: 30px; border-radius: 15px; 
+            border: 2px solid #b89b42; margin-top: 20px; width: 90%; max-width: 400px;
         }
 
         #main-menu button {
             background-color: #333333; color: #ffffff; border: 1px solid #777;
-            padding: 15px 30px; font-size: 20px; cursor: pointer; border-radius: 8px;
-            transition: 0.2s; width: 280px; margin: 10px;
+            padding: 12px; font-size: 18px; cursor: pointer; border-radius: 8px;
+            transition: 0.2s; width: 100%; margin: 8px 0;
         }
 
         #main-menu input {
             padding: 12px; font-size: 18px; border-radius: 5px; border: 1px solid #777;
-            background: #000; color: #fff; width: 250px; margin-bottom: 10px; text-align: center;
+            background: #000; color: #fff; width: 80%; margin-bottom: 10px; text-align: center;
         }
 
         #menu {
-            display: flex; gap: 15px; margin-bottom: 15px; align-items: center;
-            background-color: #1e1e1e; padding: 15px 25px; border-radius: 8px; border: 2px solid #333;
+            display: flex; gap: 10px; margin-bottom: 15px; align-items: center;
+            background-color: #1e1e1e; padding: 10px 15px; border-radius: 8px; border: 2px solid #333;
+            flex-wrap: wrap; justify-content: center;
         }
 
         #menu button, #menu select {
             background-color: #333333; color: #ffffff; border: 1px solid #777;
-            padding: 10px 20px; font-size: 18px; cursor: pointer; border-radius: 5px;
-            transition: 0.2s;
+            padding: 8px 12px; font-size: 14px; cursor: pointer; border-radius: 5px;
         }
 
-        #status-bar { font-size: 20px; color: #aaaaaa; margin-bottom: 25px; min-height: 24px; font-weight: bold; }
+        #status-bar { font-size: 20px; color: #aaaaaa; margin-bottom: 20px; min-height: 24px; font-weight: bold; text-align: center; }
         
         #game-container {
-            display: grid; grid-template-columns: 40px 640px; grid-template-rows: 640px 40px;    
-            gap: 5px; position: relative; 
+            display: grid; grid-template-columns: 30px 1fr; grid-template-rows: 1fr 30px;    
+            gap: 2px; position: relative; width: 98vw; max-width: 600px;
         }
 
         #waiting-overlay {
-            position: absolute; top: 0; left: 45px; width: 640px; height: 640px;
-            background: rgba(0,0,0,0.7); display: flex; justify-content: center;
-            align-items: center; z-index: 200; color: #e6ce55; font-size: 32px; font-weight: bold;
-            border-radius: 5px;
+            position: absolute; top: 0; left: 32px; right: 0; bottom: 32px;
+            background: rgba(0,0,0,0.8); display: flex; justify-content: center;
+            align-items: center; z-index: 200; color: #e6ce55; font-size: 24px; font-weight: bold;
+            border-radius: 5px; text-align: center;
         }
 
         #board {
-            display: grid; grid-template-columns: repeat(8, 80px); grid-template-rows: repeat(8, 80px);
-            border: 2px solid #b89b42; 
+            display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+            border: 2px solid #b89b42; aspect-ratio: 1 / 1;
         }
 
-        .ranks, .files { display: grid; align-items: center; text-align: center; font-size: 22px; color: #aaaaaa; }
-        .ranks { grid-template-rows: repeat(8, 80px); }
-        .files { grid-template-columns: repeat(8, 80px); }
+        .ranks, .files { display: grid; align-items: center; text-align: center; font-size: 16px; color: #aaaaaa; }
+        .ranks { grid-template-rows: repeat(8, 1fr); }
+        .files { grid-template-columns: repeat(8, 1fr); }
 
         .square {
-            background-color: #000000; color: #ffffff; font-size: 50px; font-weight: normal;   
+            background-color: #000000; color: #ffffff; font-size: 8vw; font-weight: normal;   
             display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none;
-            box-sizing: border-box; border: 1px solid #b89b42; position: relative;
+            box-sizing: border-box; border: 0.5px solid #b89b42; position: relative;
         }
+        @media (min-width: 600px) { .square { font-size: 45px; } }
 
         .selected { border: 3px solid #ffffff; z-index: 2; }
         .cant-move { border: 3px solid #ff3333; z-index: 2; }
         .valid-move { border: 3px solid #ffffff; z-index: 2; animation: pulse-white 1.2s infinite; }
         .ai-selected { border: 3px solid #ffffff !important; z-index: 4 !important; animation: pulse-white 1.2s infinite !important; }
+        
+        /* RAKİP SEÇTİĞİNDE YANAN SARI ÇERÇEVE */
+        .opponent-selecting { border: 3px solid #e6ce55 !important; animation: blink-yellow 0.8s infinite !important; z-index: 5; }
+        @keyframes blink-yellow { 0%, 100% { border-color: #e6ce55; opacity: 1; } 50% { border-color: transparent; opacity: 0.5; } }
 
         @keyframes pulse-white {
-            0%, 100% { border-color: #ffffff; outline: 1px solid #ffffff; }
-            50% { border-color: #444444; outline: 1px solid #444444; }
+            0%, 100% { border-color: #ffffff; }
+            50% { border-color: #444444; }
         }
         
         .animated-piece {
-            position: absolute; font-size: 50px; color: #ffffff; display: flex; justify-content: center;
-            align-items: center; width: 80px; height: 80px; z-index: 100;
+            position: absolute; font-size: 8vw; color: #ffffff; display: flex; justify-content: center;
+            align-items: center; width: 11vw; height: 11vw; max-width: 75px; max-height: 75px; z-index: 100;
             transition: left 0.6s ease-in-out, top 0.6s ease-in-out; pointer-events: none;
         }
+        @media (min-width: 600px) { .animated-piece { font-size: 45px; width: 75px; height: 75px; } }
 
-        .error-msg { color: #ff3333; margin-top: 10px; font-weight: bold; min-height: 20px; }
+        .error-msg { color: #ff3333; margin-top: 10px; font-weight: bold; min-height: 20px; font-size: 14px; }
     </style>
 </head>
 <body>
 
     <div id="main-menu">
-        <h1>♟️ Satranç Online & AI</h1>
+        <h1>♟️ Satranç Online</h1>
         <button onclick="startMode('pve')">Bilgisayara Karşı Oyna</button>
-        <div style="margin-top: 30px; padding: 20px; border: 1px solid #444; border-radius: 10px;">
-            <input type="text" id="room-input" placeholder="Oda Adı Girin">
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #444;">
+            <input type="text" id="room-input" placeholder="Oda Adı">
             <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                <button onclick="handleOnline('create')" style="background-color: #2e7d32; width: 135px; font-size: 16px;">Oda Kur</button>
-                <button onclick="handleOnline('join')" style="background-color: #1565c0; width: 135px; font-size: 16px;">Odaya Katıl</button>
+                <button onclick="handleOnline('create')" style="background-color: #2e7d32; width: 120px; font-size: 15px;">Oda Kur</button>
+                <button onclick="handleOnline('join')" style="background-color: #1565c0; width: 120px; font-size: 15px;">Odaya Katıl</button>
             </div>
             <div id="menu-error" class="error-msg"></div>
         </div>
@@ -102,16 +109,15 @@
 
     <div id="game-ui" style="display:none;">
         <div id="menu">
-            <button onclick="location.reload()">🏠 Menüye Dön</button>
+            <button onclick="location.reload()">🏠 Menü</button>
             <div id="ai-controls" style="display:none;">
                 <select id="ai-difficulty" onchange="setDifficulty(this.value)">
-                    <option value="1">Zorluk: Kolay</option>
-                    <option value="2" selected>Zorluk: Orta</option>
-                    <option value="3">Zorluk: Zor</option>
+                    <option value="1">Kolay</option>
+                    <option value="2" selected>Orta</option>
+                    <option value="3">Zor</option>
                 </select>
-                <button onclick="resetGame()">Yeni Oyun</button>
             </div>
-            <span id="role-display" style="margin-left: 20px; color: #e6ce55; font-weight: bold;"></span>
+            <span id="role-display" style="color: #e6ce55; font-weight: bold; font-size: 14px;"></span>
         </div>
 
         <div id="status-bar">Bağlanılıyor...</div>
@@ -119,7 +125,7 @@
         <div id="game-container">
             <div id="waiting-overlay" style="display:none;">Rakip Bekleniyor...</div>
             <div class="ranks" id="ranks"></div>
-            <div style="position: relative;">
+            <div style="position: relative; overflow: hidden;">
                 <div id="board"></div>
                 <div id="animation-layer"></div>
             </div>
@@ -130,66 +136,52 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // --- DEĞİŞKENLER ---
-        let boardState = [];
-        let selectedSquare = null;
-        let validMoves = [];
-        let currentTurn = 'white'; 
-        let isAnimating = false; 
-        let gameOver = false;
-        let gameMode = 'pvp'; 
-        let myRole = 'white'; 
-        let currentRoom = null;
-        let opponentPresent = false;
-        let gameId = 0; 
-        let aiDepth = 2; 
-        let isFlipped = false; 
+        let boardState = [], selectedSquare = null, validMoves = [], currentTurn = 'white';
+        let isAnimating = false, gameOver = false, gameMode = 'pvp', myRole = 'white';
+        let currentRoom = null, opponentPresent = false, gameId = 0, aiDepth = 2, isFlipped = false;
         const socket = io();
 
-        // --- MENÜ VE ONLINE MANTIĞI ---
         function startMode(mode) {
             if (mode === 'pve') {
-                gameMode = 'pve';
-                myRole = 'white';
-                opponentPresent = true;
+                gameMode = 'pve'; myRole = 'white'; opponentPresent = true;
                 document.getElementById('ai-controls').style.display = 'block';
-                initUI();
-                resetGame();
+                initUI(); resetGame();
             }
         }
 
         function handleOnline(action) {
             const roomID = document.getElementById('room-input').value;
-            if (!roomID) return alert("Lütfen bir oda adı girin!");
+            if (!roomID) return alert("Oda adı girin!");
             socket.emit(action === 'create' ? 'createRoom' : 'joinRoom', roomID);
         }
 
-        function initUI() {
-            document.getElementById('main-menu').style.display = 'none';
-            document.getElementById('game-ui').style.display = 'block';
-        }
+        function initUI() { document.getElementById('main-menu').style.display = 'none'; document.getElementById('game-ui').style.display = 'block'; }
 
         socket.on('errorMsg', (msg) => { document.getElementById('menu-error').textContent = msg; });
 
         socket.on('playerRole', (data) => {
-            myRole = data.role;
-            gameMode = 'online';
-            currentRoom = data.roomID;
-            document.getElementById('role-display').textContent = `Rolünüz: ${myRole === 'white' ? 'BEYAZ' : 'SİYAH'}`;
+            myRole = data.role; gameMode = 'online'; currentRoom = data.roomID;
+            document.getElementById('role-display').textContent = myRole === 'white' ? 'BEYAZ' : 'SİYAH';
             if (myRole === 'black') { isFlipped = true; opponentPresent = true; } 
             else { document.getElementById('waiting-overlay').style.display = 'flex'; }
-            initUI();
-            resetGame();
+            initUI(); resetGame();
         });
 
         socket.on('startGame', () => {
             opponentPresent = true;
             document.getElementById('waiting-overlay').style.display = 'none';
-            showMessage("Rakip bağlandı! Oyun başladı.");
+            updateStatusBar();
+        });
+
+        // RAKİP TAŞ SEÇTİĞİNDE SARI YANMA
+        socket.on('opponentSelected', (data) => {
+            document.querySelectorAll('.opponent-selecting').forEach(el => el.classList.remove('opponent-selecting'));
+            const sq = document.getElementById(`sq-${data.r}-${data.c}`);
+            if (sq) sq.classList.add('opponent-selecting');
         });
 
         socket.on('move', (data) => {
-            // Rakip hamlesinde parlama efekti
+            document.querySelectorAll('.opponent-selecting').forEach(el => el.classList.remove('opponent-selecting'));
             const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
             if(sq) sq.classList.add('ai-selected');
             setTimeout(() => {
@@ -199,13 +191,19 @@
         });
 
         socket.on('opponentDisconnected', () => {
-            gameOver = true;
-            showMessage("⚠️ Rakip bağlantısı koptu. Oyun bitti.");
-            alert("Rakip oyundan ayrıldı.");
+            gameOver = true; showMessage("⚠️ Rakip ayrıldı.");
         });
 
-        // --- OYUN FONKSİYONLARI (V12'DEN) ---
         function showMessage(msg) { document.getElementById('status-bar').textContent = msg; }
+        
+        function updateStatusBar() {
+            if (gameOver) return;
+            const isMyTurn = (currentTurn === myRole);
+            const msg = isMyTurn ? "SIRA SENDE" : "SIRA RAKİPTE";
+            document.getElementById('status-bar').style.color = isMyTurn ? "#e6ce55" : "#aaaaaa";
+            showMessage(msg);
+        }
+
         function isWhite(piece) { return "KAFVŞP".includes(piece); }
         function isBlack(piece) { return "kafvşp".includes(piece); }
         function isEmpty(r, c) { return boardState[r][c] === ''; }
@@ -216,18 +214,14 @@
         function setDifficulty(level) { aiDepth = parseInt(level); }
 
         function resetGame() {
-            gameId++; 
+            gameId++;
             boardState = [
-                ['k', 'a', 'f', 'v', 'ş', 'f', 'a', 'k'],
-                ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-                ['', '', '', '', '', '', '', ''], ['', '', '', '', '', '', '', ''],
-                ['', '', '', '', '', '', '', ''], ['', '', '', '', '', '', '', ''],
-                ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-                ['K', 'A', 'F', 'V', 'Ş', 'F', 'A', 'K']
+                ['k', 'a', 'f', 'v', 'ş', 'f', 'a', 'k'], ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+                ['','','','','','','',''], ['','','','','','','',''], ['','','','','','','',''], ['','','','','','','',''],
+                ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], ['K', 'A', 'F', 'V', 'Ş', 'F', 'A', 'K']
             ];
             selectedSquare = null; validMoves = []; currentTurn = 'white'; isAnimating = false; gameOver = false;
-            createCoordinates(); createBoard();
-            showMessage(`Sıra BEYAZDA.`);
+            createCoordinates(); createBoard(); updateStatusBar();
         }
 
         function findKing(color) {
@@ -250,8 +244,7 @@
 
         function getPseudoLegalMoves(r, c) {
             const piece = boardState[r][c]; let moves = []; if (!piece) return moves;
-            const isW = isWhite(piece); const pType = piece.toLowerCase(); 
-
+            const isW = isWhite(piece); const pType = piece.toLowerCase();
             if (pType === 'p') {
                 const dir = isW ? -1 : 1; const startRow = isW ? 6 : 1;
                 if (isOnBoard(r + dir, c) && isEmpty(r + dir, c)) {
@@ -271,7 +264,7 @@
                 dirs.forEach(d => {
                     let nr = r + d[0], nc = c + d[1];
                     while (isOnBoard(nr, nc)) {
-                        if (isEmpty(nr, nc)) { moves.push({r: nr, c: nc}); } 
+                        if (isEmpty(nr, nc)) moves.push({r: nr, c: nc});
                         else { if (isEnemy(piece, boardState[nr][nc])) moves.push({r: nr, c: nc}); break; }
                         nr += d[0]; nc += d[1];
                     }
@@ -290,48 +283,47 @@
         }
 
         function getValidMoves(r, c) {
-            let pseudo = getPseudoLegalMoves(r, c); let valid = [];
-            let original = boardState[r][c]; let color = isWhite(original) ? 'white' : 'black';
-            pseudo.forEach(move => {
-                let target = boardState[move.r][move.c];
-                boardState[r][c] = ''; boardState[move.r][move.c] = original;
-                let king = findKing(color);
-                if (king && !isSquareUnderAttack(king.r, king.c, color === 'white' ? 'black' : 'white')) valid.push(move);
-                boardState[move.r][move.c] = target; boardState[r][c] = original;
+            let pseudo = getPseudoLegalMoves(r, c), valid = [], p = boardState[r][c], col = isWhite(p) ? 'white' : 'black';
+            pseudo.forEach(m => {
+                let old = boardState[m.r][m.c]; boardState[r][c] = ''; boardState[m.r][m.c] = p;
+                let k = findKing(col);
+                if (k && !isSquareUnderAttack(k.r, k.c, col === 'white' ? 'black' : 'white')) valid.push(m);
+                boardState[m.r][m.c] = old; boardState[r][c] = p;
             });
             return valid;
         }
 
         function checkGameState() {
-            let hasMove = false; let myColor = currentTurn;
+            let hasMove = false, myCol = currentTurn;
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
                     let p = boardState[r][c];
-                    if (p !== '' && ((myColor === 'white' && isWhite(p)) || (myColor === 'black' && isBlack(p)))) {
+                    if (p !== '' && ((myCol === 'white' && isWhite(p)) || (myCol === 'black' && isBlack(p)))) {
                         if (getValidMoves(r, c).length > 0) { hasMove = true; break; }
                     }
                 }
                 if (hasMove) break;
             }
-            let king = findKing(myColor); let isCheck = isSquareUnderAttack(king.r, king.c, myColor === 'white' ? 'black' : 'white');
+            let k = findKing(myCol), isCheck = isSquareUnderAttack(k.r, k.c, myCol === 'white' ? 'black' : 'white');
             if (!hasMove) {
                 gameOver = true;
-                showMessage(isCheck ? `🏆 ŞAH MAT! ${myColor === 'white' ? 'Siyahlar' : 'Beyazlar'} kazandı.` : "🤝 PAT!");
+                if (isCheck) showMessage(currentTurn === myRole ? "RAKİP KAZANDI (MAT)" : "TEBRİKLER, SEN KAZANDIN!");
+                else showMessage("🤝 PAT (BERABERE)");
             } else if (isCheck) {
-                document.getElementById('status-bar').style.color = "#ff3333";
-                showMessage(`⚠️ ŞAH! Sıra ${myColor === 'white' ? 'BEYAZDA' : 'SİYAHTA'}.`);
-            } else {
-                document.getElementById('status-bar').style.color = "#aaaaaa";
-                showMessage(`Sıra ${myColor === 'white' ? 'BEYAZDA' : 'SİYAHTA'}.`);
-            }
+                showMessage("⚠️ ŞAH ÇEKİLDİ!"); document.getElementById('status-bar').style.color = "#ff3333";
+            } else { updateStatusBar(); }
         }
 
         function animateMove(sR, sC, eR, eC, isRemote = false) {
             isAnimating = true; let p = boardState[sR][sC];
             boardState[sR][sC] = ''; selectedSquare = null; validMoves = []; createBoard();
             const ghost = document.createElement('div'); ghost.classList.add('animated-piece'); ghost.textContent = p;
-            let sX = isFlipped ? (7-sC)*80 : sC*80, sY = isFlipped ? (7-sR)*80 : sR*80;
-            let eX = isFlipped ? (7-eC)*80 : eC*80, eY = isFlipped ? (7-eR)*80 : eR*80;
+            
+            const bRect = document.getElementById('board').getBoundingClientRect();
+            const sqSize = bRect.width / 8;
+            let sX = isFlipped ? (7-sC)*sqSize : sC*sqSize, sY = isFlipped ? (7-sR)*sqSize : sR*sqSize;
+            let eX = isFlipped ? (7-eC)*sqSize : eC*sqSize, eY = isFlipped ? (7-eR)*sqSize : eR*sqSize;
+
             ghost.style.left = sX+'px'; ghost.style.top = sY+'px';
             document.getElementById('animation-layer').appendChild(ghost);
             setTimeout(() => { ghost.style.left = eX+'px'; ghost.style.top = eY+'px'; }, 10);
@@ -339,42 +331,39 @@
                 document.getElementById('animation-layer').innerHTML = ''; boardState[eR][eC] = p;
                 currentTurn = currentTurn === 'white' ? 'black' : 'white';
                 isAnimating = false; checkGameState(); createBoard();
-                if(!isRemote && gameMode === 'online') socket.emit('move', { from: {r:sR, c:sC}, to: {r:eR, c:eC}, roomID: currentRoom });
+                if(!isRemote && gameMode === 'online') socket.emit('move', { from:{r:sR, c:sC}, to:{r:eR, c:eC}, roomID:currentRoom });
                 if(!gameOver && gameMode === 'pve' && currentTurn === 'black') setTimeout(makeAIMove, 50);
             }, 600);
         }
 
         function handleSquareClick(r, c) {
             if (isAnimating || gameOver) return;
-            if (gameMode === 'online') {
-                if (!opponentPresent || currentTurn !== myRole) return;
-            }
+            if (gameMode === 'online' && (!opponentPresent || currentTurn !== myRole)) return;
             if (gameMode === 'pve' && currentTurn === 'black') return;
 
-            const clicked = boardState[r][c];
+            const p = boardState[r][c];
             if (selectedSquare) {
                 if (validMoves.some(m => m.r === r && m.c === c)) {
                     animateMove(selectedSquare.row, selectedSquare.col, r, c);
-                } else if (isFriendly(boardState[selectedSquare.row][selectedSquare.col], clicked)) {
-                    let v = getValidMoves(r, c);
-                    selectedSquare = { row: r, col: c, cantMove: v.length === 0 };
-                    validMoves = v; createBoard();
-                } else {
-                    selectedSquare = null; validMoves = []; createBoard();
-                }
-            } else if (clicked !== '' && ((currentTurn === 'white' && isWhite(clicked)) || (currentTurn === 'black' && isBlack(clicked)))) {
-                let v = getValidMoves(r, c);
-                selectedSquare = { row: r, col: c, cantMove: v.length === 0 };
-                validMoves = v; createBoard();
+                } else if (isFriendly(boardState[selectedSquare.row][selectedSquare.col], p)) {
+                    performSelection(r, c);
+                } else { selectedSquare = null; validMoves = []; createBoard(); }
+            } else if (p !== '' && ((currentTurn === 'white' && isWhite(p)) || (currentTurn === 'black' && isBlack(p)))) {
+                performSelection(r, c);
             }
+        }
+
+        function performSelection(r, c) {
+            let v = getValidMoves(r, c);
+            selectedSquare = { row: r, col: c, cantMove: v.length === 0 };
+            validMoves = v; createBoard();
+            if (gameMode === 'online') socket.emit('selectPiece', { r, c, roomID: currentRoom });
         }
 
         function createCoordinates() {
             const rs = document.getElementById('ranks'), fs = document.getElementById('files');
             rs.innerHTML = ''; fs.innerHTML = '';
-            for (let i = isFlipped ? 1 : 8; isFlipped ? i <= 8 : i >= 1; isFlipped ? i++ : i--) {
-                rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
-            }
+            for (let i = isFlipped ? 1 : 8; isFlipped ? i <= 8 : i >= 1; isFlipped ? i++ : i--) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
             let fls = isFlipped ? ['H','G','F','E','D','C','B','A'] : ['A','B','C','D','E','F','G','H'];
             fls.forEach(f => fs.appendChild(Object.assign(document.createElement('div'), {textContent: f})));
         }
@@ -393,68 +382,61 @@
             }
         }
 
-        // --- AI (V12'DEN) ---
-        const pVals = { 'p': 10, 'a': 30, 'f': 30, 'k': 50, 'v': 90, 'ş': 900, 'P': -10, 'A': -30, 'F': -30, 'K': -50, 'V': -90, 'Ş': -900 };
+        const pVals = { 'p':10, 'a':30, 'f':30, 'k':50, 'v':90, 'ş':900, 'P':-10, 'A':-30, 'F':-30, 'K':-50, 'V':-90, 'Ş':-900 };
         function evaluateBoard() {
             let sc = 0;
             for(let r=0; r<8; r++) { for(let c=0; c<8; c++) { let p = boardState[r][c]; if(p) sc += pVals[p]; } }
             return sc;
         }
-        function getAllValidMoves(color) {
+        function getAllValidMoves(col) {
             let ms = [];
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
-                    if (boardState[r][c] !== '' && (color==='white'?isWhite(boardState[r][c]):isBlack(boardState[r][c]))) {
-                        getValidMoves(r, c).forEach(v => ms.push({ from: {r, c}, to: {r: v.r, c: v.c} }));
-                    }
+            for(let r=0; r<8; r++) { for(let c=0; c<8; c++) {
+                if(boardState[r][c] !== '' && (col==='white'?isWhite(boardState[r][c]):isBlack(boardState[r][c]))) {
+                    getValidMoves(r,c).forEach(v => ms.push({from:{r,c}, to:{r:v.r, c:v.c}}));
                 }
-            }
+            }}
             return ms;
         }
-        function minimax(depth, alpha, beta, isMax) {
-            if (depth === 0 || gameOver) return evaluateBoard();
-            let color = isMax ? 'black' : 'white';
-            let ms = getAllValidMoves(color);
+        function minimax(dep, alp, bet, isMax) {
+            if (dep === 0 || gameOver) return evaluateBoard();
+            let col = isMax ? 'black' : 'white', ms = getAllValidMoves(col);
             if (ms.length === 0) return isMax ? -9999 : 9999;
             if (isMax) {
-                let mEval = -Infinity;
-                for (let m of ms) {
+                let mEv = -Infinity;
+                for(let m of ms) {
                     let old = boardState[m.to.r][m.to.c], p = boardState[m.from.r][m.from.c];
                     boardState[m.from.r][m.from.c] = ''; boardState[m.to.r][m.to.c] = p;
-                    mEval = Math.max(mEval, minimax(depth - 1, alpha, beta, false));
+                    mEv = Math.max(mEv, minimax(dep-1, alp, bet, false));
                     boardState[m.to.r][m.to.c] = old; boardState[m.from.r][m.from.c] = p;
-                    alpha = Math.max(alpha, mEval); if (beta <= alpha) break;
+                    alp = Math.max(alp, mEv); if(bet <= alp) break;
                 }
-                return mEval;
+                return mEv;
             } else {
-                let mEval = Infinity;
-                for (let m of ms) {
+                let mEv = Infinity;
+                for(let m of ms) {
                     let old = boardState[m.to.r][m.to.c], p = boardState[m.from.r][m.from.c];
                     boardState[m.from.r][m.from.c] = ''; boardState[m.to.r][m.to.c] = p;
-                    mEval = Math.min(mEval, minimax(depth - 1, alpha, beta, true));
+                    mEv = Math.min(mEv, minimax(dep-1, alp, bet, true));
                     boardState[m.to.r][m.to.c] = old; boardState[m.from.r][m.from.c] = p;
-                    beta = Math.min(beta, mEval); if (beta <= alpha) break;
+                    bet = Math.min(bet, mEv); if(bet <= alp) break;
                 }
-                return mEval;
+                return mEv;
             }
         }
         function makeAIMove() {
-            let ms = getAllValidMoves('black'); if (ms.length === 0) return;
+            let ms = getAllValidMoves('black'); if(ms.length === 0) return;
             let best = -Infinity, choices = [];
             ms.forEach(m => {
                 let old = boardState[m.to.r][m.to.c], p = boardState[m.from.r][m.from.c];
                 boardState[m.from.r][m.from.c] = ''; boardState[m.to.r][m.to.c] = p;
-                let sc = minimax(aiDepth - 1, -Infinity, Infinity, false);
+                let sc = minimax(aiDepth-1, -Infinity, Infinity, false);
                 boardState[m.to.r][m.to.c] = old; boardState[m.from.r][m.from.c] = p;
-                if (sc > best) { best = sc; choices = [m]; } else if (sc === best) choices.push(m);
+                if(sc > best) { best = sc; choices = [m]; } else if(sc === best) choices.push(m);
             });
-            let chosen = choices[Math.floor(Math.random() * choices.length)];
-            const sq = document.getElementById(`sq-${chosen.from.r}-${chosen.from.c}`);
+            let ch = choices[Math.floor(Math.random()*choices.length)];
+            const sq = document.getElementById(`sq-${ch.from.r}-${ch.from.c}`);
             if(sq) sq.classList.add('ai-selected');
-            setTimeout(() => {
-                if(sq) sq.classList.remove('ai-selected');
-                animateMove(chosen.from.r, chosen.from.c, chosen.to.r, chosen.to.c);
-            }, 1500);
+            setTimeout(() => { if(sq) sq.classList.remove('ai-selected'); animateMove(ch.from.r, ch.from.c, ch.to.r, ch.to.c); }, 1500);
         }
     </script>
 </body>

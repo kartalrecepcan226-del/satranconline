@@ -12,10 +12,9 @@ app.use(express.static(__dirname));
 let rooms = {}; 
 
 io.on('connection', (socket) => {
-    // ODA KURMA MANTIĞI
+    // ODA KURMA
     socket.on('createRoom', (roomID) => {
         if (rooms[roomID]) {
-            // Oda zaten varsa hata gönder
             socket.emit('errorMsg', 'Bu isimde bir oda zaten var.');
         } else {
             rooms[roomID] = [socket.id];
@@ -24,33 +23,33 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ODAYA KATILMA MANTIĞI
+    // ODAYA KATILMA
     socket.on('joinRoom', (roomID) => {
         if (!rooms[roomID]) {
-            // Oda hiç kurulmamışsa
             socket.emit('errorMsg', 'Oda bulunamadı.');
         } else if (rooms[roomID].length >= 2) {
-            // Oda mevcut ama 2 kişi varsa
             socket.emit('errorMsg', 'Oda dolu.');
         } else {
             rooms[roomID].push(socket.id);
             socket.join(roomID);
             socket.emit('playerRole', { role: 'black', roomID });
-            io.to(roomID).emit('startGame'); // İkinci kişi geldiğinde maçı başlat
+            io.to(roomID).emit('startGame');
         }
     });
 
-    // HAMLELERİN İLETİLMESİ
+    // TAŞ SEÇİMİNİ İLETME (YENİ)
+    socket.on('selectPiece', (data) => {
+        socket.to(data.roomID).emit('opponentSelected', data);
+    });
+
+    // HAMLE İLETME
     socket.on('move', (data) => {
-        // Hamleyi sadece o odadaki diğer oyuncuya gönder
         socket.to(data.roomID).emit('move', data);
     });
 
-    // BAĞLANTI KOPMA KONTROLÜ
     socket.on('disconnect', () => {
         for (let roomID in rooms) {
             if (rooms[roomID].includes(socket.id)) {
-                // Rakibi bilgilendir ve odayı temizle
                 io.to(roomID).emit('opponentDisconnected');
                 delete rooms[roomID];
             }
@@ -59,4 +58,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Sunucu 3000 portunda aktif.`));
+server.listen(PORT, () => console.log(`Sunucu aktif.`));
