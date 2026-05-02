@@ -15,6 +15,7 @@ io.on('connection', (socket) => {
         if (rooms[roomID]) {
             socket.emit('errorMsg', 'Bu isimde bir oda zaten var.');
         } else {
+            // readyForRestart dizisi ile rövanş onaylarını tutuyoruz
             rooms[roomID] = { players: [socket.id], readyForRestart: [] };
             socket.join(roomID);
             socket.emit('playerRole', { role: 'white', roomID });
@@ -34,13 +35,15 @@ io.on('connection', (socket) => {
         }
     });
 
-    // YENİDEN OYNAMA İSTEĞİ
+    // RÖVANŞ İSTEĞİ VE ONAYI
     socket.on('requestRestart', (roomID) => {
         if (rooms[roomID]) {
             if (!rooms[roomID].readyForRestart.includes(socket.id)) {
                 rooms[roomID].readyForRestart.push(socket.id);
+                // Rakibe rövanş isteği geldiğini bildir
+                socket.to(roomID).emit('opponentWantsRematch');
             }
-            // İki oyuncu da hazırsa oyunu başlat
+            // Her iki oyuncu da onay verdiyse oyunu başlat (Renkler aynı kalır)
             if (rooms[roomID].readyForRestart.length === 2) {
                 rooms[roomID].readyForRestart = [];
                 io.to(roomID).emit('startGame');
@@ -48,6 +51,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Hamle iletimi (Seçim iletimi kaldırıldı)
     socket.on('move', (data) => {
         socket.to(data.roomID).emit('move', data);
     });
