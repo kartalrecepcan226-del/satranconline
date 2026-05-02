@@ -49,25 +49,27 @@
             border: 2px solid #b89b42; aspect-ratio: 1 / 1;
         }
 
+        .ranks, .files { display: grid; align-items: center; text-align: center; font-size: 16px; color: #aaaaaa; }
+        .ranks { grid-template-rows: repeat(8, 1fr); }
+        .files { grid-template-columns: repeat(8, 1fr); }
+
         .square {
             background-color: #000000; color: #ffffff; font-size: 8vw; font-weight: normal;   
             display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none;
             box-sizing: border-box; border: 0.5px solid #b89b42; position: relative;
         }
-        @media (min-width: 600px) { .square { font-size: 45px; } }
+        @media (min-width: 600px) { .square { font-size: 45px; } .ranks, .files { font-size: 20px; } }
 
-        /* GÖRSEL EFEKTLER */
-        .selected { border: 5px solid #ffffff !important; z-index: 20; } /* SENDE SABİT BEYAZ */
-        .cant-move { border: 5px solid #ff3333 !important; z-index: 20; } /* SENDE SABİT KIRMIZI */
+        .selected { border: 5px solid #ffffff !important; z-index: 20; } 
+        .cant-move { border: 5px solid #ff3333 !important; z-index: 20; } 
         
-        /* RAKİPTE YANIP SÖNME (PULSE EFEKTİ) */
         .opponent-selecting { 
             border: 5px solid #ffffff !important; 
-            animation: pulse-move 1.2s infinite !important; /* Gidilebilir yerlerdeki efektin aynısı */
+            animation: pulse-move 1.2s infinite !important; 
             z-index: 20; 
         }
 
-        .ai-selected { border: 5px solid #ffffff !important; z-index: 20; } /* HAMLE GELİNCE SABİT */
+        .ai-selected { border: 5px solid #ffffff !important; z-index: 20; } 
 
         .valid-move { 
             border: 3px solid #ffffff; 
@@ -331,7 +333,13 @@
             document.getElementById('animation-layer').appendChild(ghost);
             setTimeout(() => { ghost.style.left = eX+'px'; ghost.style.top = eY+'px'; }, 10);
             setTimeout(() => {
-                document.getElementById('animation-layer').innerHTML = ''; boardState[eR][eC] = p;
+                document.getElementById('animation-layer').innerHTML = '';
+                
+                // --- PİYON TERFİSİ ---
+                if (p === 'P' && eR === 0) p = 'V';
+                if (p === 'p' && eR === 7) p = 'v';
+                
+                boardState[eR][eC] = p;
                 currentTurn = currentTurn === 'white' ? 'black' : 'white';
                 isAnimating = false; checkGameState(); createBoard();
                 if(!isRem && gameMode === 'online') socket.emit('move', { from:{r:sR, c:sC}, to:{r:eR, c:eC}, roomID:currentRoom });
@@ -385,13 +393,14 @@
             selectedSquare = { row: r, col: c, cantMove: false };
             validMoves = v; 
             createBoard();
-            if (gameMode === 'online') socket.emit('selectPiece', { r, c, roomID: currentRoom });
+            if (gameMode === 'online') socket.emit('selectPiece', { r: r, c: c, roomID: currentRoom });
         }
 
         function createCoordinates() {
             const rs = document.getElementById('ranks'), fs = document.getElementById('files');
             rs.innerHTML = ''; fs.innerHTML = '';
-            for (let i = isFlipped ? 1 : 8; isFlipped ? i <= 8 : i >= 1; isFlipped ? i++ : i--) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
+            for (let i = isFlipped ? 1 : 8; i >= 1 && !isFlipped; i--) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
+            if(isFlipped) for (let i = 1; i <= 8; i++) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
             let fls = isFlipped ? ['H','G','F','E','D','C','B','A'] : ['A','B','C','D','E','F','G','H'];
             fls.forEach(f => fs.appendChild(Object.assign(document.createElement('div'), {textContent: f})));
         }
