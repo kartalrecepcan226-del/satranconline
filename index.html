@@ -335,7 +335,6 @@
             setTimeout(() => {
                 document.getElementById('animation-layer').innerHTML = '';
                 
-                // --- PİYON TERFİSİ ---
                 if (p === 'P' && eR === 0) p = 'V';
                 if (p === 'p' && eR === 7) p = 'v';
                 
@@ -399,8 +398,13 @@
         function createCoordinates() {
             const rs = document.getElementById('ranks'), fs = document.getElementById('files');
             rs.innerHTML = ''; fs.innerHTML = '';
-            for (let i = isFlipped ? 1 : 8; i >= 1 && !isFlipped; i--) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
-            if(isFlipped) for (let i = 1; i <= 8; i++) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
+            
+            if (!isFlipped) {
+                for (let i = 8; i >= 1; i--) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
+            } else {
+                for (let i = 1; i <= 8; i++) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
+            }
+
             let fls = isFlipped ? ['H','G','F','E','D','C','B','A'] : ['A','B','C','D','E','F','G','H'];
             fls.forEach(f => fs.appendChild(Object.assign(document.createElement('div'), {textContent: f})));
         }
