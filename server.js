@@ -15,7 +15,7 @@ io.on('connection', (socket) => {
         if (rooms[roomID]) {
             socket.emit('errorMsg', 'Bu isimde bir oda zaten var.');
         } else {
-            rooms[roomID] = [socket.id];
+            rooms[roomID] = { players: [socket.id], readyForRestart: [] };
             socket.join(roomID);
             socket.emit('playerRole', { role: 'white', roomID });
         }
@@ -24,18 +24,28 @@ io.on('connection', (socket) => {
     socket.on('joinRoom', (roomID) => {
         if (!rooms[roomID]) {
             socket.emit('errorMsg', 'Oda bulunamadı.');
-        } else if (rooms[roomID].length >= 2) {
+        } else if (rooms[roomID].players.length >= 2) {
             socket.emit('errorMsg', 'Oda dolu.');
         } else {
-            rooms[roomID].push(socket.id);
+            rooms[roomID].players.push(socket.id);
             socket.join(roomID);
             socket.emit('playerRole', { role: 'black', roomID });
             io.to(roomID).emit('startGame');
         }
     });
 
-    socket.on('selectPiece', (data) => {
-        socket.to(data.roomID).emit('opponentSelected', data);
+    // YENİDEN OYNAMA İSTEĞİ
+    socket.on('requestRestart', (roomID) => {
+        if (rooms[roomID]) {
+            if (!rooms[roomID].readyForRestart.includes(socket.id)) {
+                rooms[roomID].readyForRestart.push(socket.id);
+            }
+            // İki oyuncu da hazırsa oyunu başlat
+            if (rooms[roomID].readyForRestart.length === 2) {
+                rooms[roomID].readyForRestart = [];
+                io.to(roomID).emit('startGame');
+            }
+        }
     });
 
     socket.on('move', (data) => {
@@ -44,7 +54,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         for (let roomID in rooms) {
-            if (rooms[roomID] && rooms[roomID].includes(socket.id)) {
+            if (rooms[roomID].players.includes(socket.id)) {
                 io.to(roomID).emit('opponentDisconnected');
                 delete rooms[roomID];
             }

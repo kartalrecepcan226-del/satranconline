@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Erişilebilir Satranç - Online & AI</title>
+    <title>Erişilebilir Satranç - Online</title>
     <style>
         body {
             background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
@@ -37,8 +37,13 @@
             padding: 8px 12px; font-size: 14px; cursor: pointer; border-radius: 5px;
         }
 
-        #status-bar { font-size: 20px; color: #aaaaaa; margin-bottom: 15px; min-height: 24px; font-weight: bold; text-align: center; }
+        #status-bar { font-size: 20px; color: #aaaaaa; margin-bottom: 5px; min-height: 24px; font-weight: bold; text-align: center; }
         
+        #restart-btn {
+            background-color: #2e7d32; color: white; border: none; padding: 10px 20px;
+            font-size: 16px; border-radius: 5px; cursor: pointer; margin-bottom: 15px; display: none;
+        }
+
         #game-container {
             display: grid; grid-template-columns: 30px 1fr; grid-template-rows: 1fr 30px;    
             gap: 2px; position: relative; width: 95vw; max-width: 600px;
@@ -62,13 +67,6 @@
 
         .selected { border: 5px solid #ffffff !important; z-index: 20; } 
         .cant-move { border: 5px solid #ff3333 !important; z-index: 20; } 
-        
-        .opponent-selecting { 
-            border: 5px solid #ffffff !important; 
-            animation: pulse-move 1.2s infinite !important; 
-            z-index: 20; 
-        }
-
         .ai-selected { border: 5px solid #ffffff !important; z-index: 20; } 
 
         .valid-move { 
@@ -123,6 +121,7 @@
         </div>
 
         <div id="status-bar">Bağlanılıyor...</div>
+        <button id="restart-btn" onclick="requestRestart()">🔄 Tekrar Oyna</button>
 
         <div id="game-container">
             <div id="waiting-overlay" style="display:none;">Rakip Bekleniyor...</div>
@@ -158,31 +157,23 @@
         }
 
         function initUI() { document.getElementById('main-menu').style.display = 'none'; document.getElementById('game-ui').style.display = 'block'; }
-        socket.on('errorMsg', (msg) => { document.getElementById('menu-error').textContent = msg; });
-
+        
         socket.on('playerRole', (data) => {
             myRole = data.role; gameMode = 'online'; currentRoom = data.roomID;
             document.getElementById('role-display').textContent = myRole === 'white' ? 'BEYAZ' : 'SİYAH';
-            if (myRole === 'black') { isFlipped = true; opponentPresent = true; } 
-            else { document.getElementById('waiting-overlay').style.display = 'flex'; }
+            isFlipped = (myRole === 'black');
             initUI(); resetGame();
+            document.getElementById('waiting-overlay').style.display = 'flex';
         });
 
         socket.on('startGame', () => {
-            opponentPresent = true; document.getElementById('waiting-overlay').style.display = 'none';
-            updateStatusBar();
-        });
-
-        socket.on('opponentSelected', (data) => {
-            clearVisuals();
-            if (data && data.r !== null && data.r !== undefined) {
-                const sq = document.getElementById(`sq-${data.r}-${data.c}`);
-                if (sq) sq.classList.add('opponent-selecting');
-            }
+            opponentPresent = true; 
+            document.getElementById('waiting-overlay').style.display = 'none';
+            document.getElementById('restart-btn').style.display = 'none';
+            resetGame();
         });
 
         socket.on('move', (data) => {
-            clearVisuals();
             const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
             if(sq) sq.classList.add('ai-selected');
             setTimeout(() => {
@@ -197,10 +188,12 @@
             document.getElementById('status-bar').style.color = "#ff3333";
         });
 
-        function clearVisuals() {
-            document.querySelectorAll('.opponent-selecting, .ai-selected').forEach(el => {
-                el.classList.remove('opponent-selecting', 'ai-selected');
-            });
+        function requestRestart() {
+            document.getElementById('restart-btn').style.display = 'none';
+            document.getElementById('waiting-overlay').style.display = 'flex';
+            document.getElementById('waiting-overlay').textContent = "Rakip Bekleniyor...";
+            if (gameMode === 'online') socket.emit('requestRestart', currentRoom);
+            else { resetGame(); document.getElementById('waiting-overlay').style.display = 'none'; }
         }
 
         function showMessage(msg) { document.getElementById('status-bar').textContent = msg; }
@@ -223,13 +216,14 @@
         function setDifficulty(l) { aiDepth = parseInt(l); }
 
         function resetGame() {
-            gameId++;
             boardState = [
                 ['k', 'a', 'f', 'v', 'ş', 'f', 'a', 'k'], ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
                 ['','','','','','','',''], ['','','','','','','',''], ['','','','','','','',''], ['','','','','','','',''],
                 ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], ['K', 'A', 'F', 'V', 'Ş', 'F', 'A', 'K']
             ];
             selectedSquare = null; validMoves = []; currentTurn = 'white'; isAnimating = false; gameOver = false;
+            document.getElementById('status-bar').style.color = "#aaaaaa";
+            document.getElementById('restart-btn').style.display = 'none';
             createCoordinates(); createBoard(); updateStatusBar();
         }
 
@@ -316,6 +310,7 @@
                 gameOver = true;
                 if (isCheck) showMessage(currentTurn === myRole ? "RAKİP KAZANDI (MAT)" : "TEBRİKLER, SEN KAZANDIN!");
                 else showMessage("🤝 PAT (BERABERE)");
+                document.getElementById('restart-btn').style.display = 'inline-block';
             } else if (isCheck) {
                 showMessage("⚠️ ŞAH ÇEKİLDİ!"); document.getElementById('status-bar').style.color = "#ff3333";
             } else { updateStatusBar(); }
@@ -334,10 +329,7 @@
             setTimeout(() => { ghost.style.left = eX+'px'; ghost.style.top = eY+'px'; }, 10);
             setTimeout(() => {
                 document.getElementById('animation-layer').innerHTML = '';
-                
-                if (p === 'P' && eR === 0) p = 'V';
-                if (p === 'p' && eR === 7) p = 'v';
-                
+                if (p === 'P' && eR === 0) p = 'V'; if (p === 'p' && eR === 7) p = 'v';
                 boardState[eR][eC] = p;
                 currentTurn = currentTurn === 'white' ? 'black' : 'white';
                 isAnimating = false; checkGameState(); createBoard();
@@ -347,64 +339,40 @@
         }
 
         function handleSquareClick(r, c) {
-            if (isAnimating || gameOver) return;
-            if (gameMode === 'online' && (!opponentPresent || currentTurn !== myRole)) return;
+            if (isAnimating || gameOver || !opponentPresent) return;
+            if (gameMode === 'online' && currentTurn !== myRole) return;
             if (gameMode === 'pve' && currentTurn === 'black') return;
 
             const p = boardState[r][c];
-
             if (selectedSquare) {
                 if (validMoves.some(m => m.r === r && m.c === c)) {
                     animateMove(selectedSquare.row, selectedSquare.col, r, c);
                 } 
                 else if (isFriendly(boardState[selectedSquare.row][selectedSquare.col], p)) {
                     if (selectedSquare.row === r && selectedSquare.col === c) {
-                        clearMySelection();
-                    } else {
-                        selectPiece(r, c);
-                    }
+                        selectedSquare = null; validMoves = []; createBoard();
+                    } else { selectPiece(r, c); }
                 } 
-                else {
-                    clearMySelection();
-                    if (p !== '') selectPiece(r, c);
-                }
+                else { selectedSquare = null; validMoves = []; createBoard(); if (p !== '') selectPiece(r, c); }
             } else if (p !== '' && ((currentTurn === 'white' && isWhite(p)) || (currentTurn === 'black' && isBlack(p)))) {
                 selectPiece(r, c);
             }
         }
 
-        function clearMySelection() {
-            selectedSquare = null;
-            validMoves = [];
-            createBoard();
-            if (gameMode === 'online') socket.emit('selectPiece', { r: null, roomID: currentRoom });
-        }
-
         function selectPiece(r, c) {
             let v = getValidMoves(r, c);
-            if (v.length === 0) {
-                selectedSquare = { row: r, col: c, cantMove: true };
-                validMoves = [];
-                createBoard();
-                if (gameMode === 'online') socket.emit('selectPiece', { r: null, roomID: currentRoom });
-                return;
-            }
-            selectedSquare = { row: r, col: c, cantMove: false };
-            validMoves = v; 
-            createBoard();
-            if (gameMode === 'online') socket.emit('selectPiece', { r: r, c: c, roomID: currentRoom });
+            selectedSquare = { row: r, col: c, cantMove: v.length === 0 };
+            validMoves = v; createBoard();
         }
 
         function createCoordinates() {
             const rs = document.getElementById('ranks'), fs = document.getElementById('files');
             rs.innerHTML = ''; fs.innerHTML = '';
-            
             if (!isFlipped) {
                 for (let i = 8; i >= 1; i--) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
             } else {
                 for (let i = 1; i <= 8; i++) rs.appendChild(Object.assign(document.createElement('div'), {textContent: i}));
             }
-
             let fls = isFlipped ? ['H','G','F','E','D','C','B','A'] : ['A','B','C','D','E','F','G','H'];
             fls.forEach(f => fs.appendChild(Object.assign(document.createElement('div'), {textContent: f})));
         }
@@ -422,7 +390,7 @@
                 }
             }
         }
-
+        
         const pVals = { 'p':10, 'a':30, 'f':30, 'k':50, 'v':90, 'ş':900, 'P':-10, 'A':-30, 'F':-30, 'K':-50, 'V':-90, 'Ş':-900 };
         function evaluateBoard() {
             let sc = 0;
