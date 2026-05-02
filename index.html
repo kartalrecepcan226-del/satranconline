@@ -33,7 +33,6 @@
         }
         #status-bar { font-size: 20px; color: #aaaaaa; margin-bottom: 5px; min-height: 24px; font-weight: bold; text-align: center; }
         
-        /* Rövanş Bildirim Metni */
         #rematch-status { color: #e6ce55; font-size: 16px; margin-bottom: 10px; font-weight: bold; min-height: 20px; text-align: center; }
         
         #restart-btn {
@@ -56,12 +55,10 @@
             display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none;
             box-sizing: border-box; border: 0.5px solid #b89b42; position: relative;
         }
-        @media (min-width: 600px) { .square { font-size: 45px; } .ranks, .files { font-size: 20px; } }
         
-        /* GÖRSEL EFEKTLER */
         .selected { border: 5px solid #ffffff !important; z-index: 30; } 
         .cant-move { border: 5px solid #ff3333 !important; z-index: 30; } 
-        .ai-selected { border: 5px solid #ffffff !important; z-index: 30; } /* Sadece oynanınca rakipte sabit parlayan sınıf */
+        .ai-selected { border: 5px solid #ffffff !important; z-index: 30; } 
         
         .valid-move { border: 3px solid #ffffff; z-index: 5; animation: pulse-move 1.5s infinite; }
         @keyframes pulse-move { 0%, 100% { border-color: #ffffff; opacity: 1; } 50% { border-color: #444444; opacity: 0.4; } }
@@ -71,6 +68,14 @@
             align-items: center; width: 11.5vw; height: 11.5vw; max-width: 75px; max-height: 75px; z-index: 100;
             transition: left 0.6s ease-in-out, top 0.6s ease-in-out; pointer-events: none;
         }
+
+        /* Bilgisayar ekranlarında hem tahtayı hem de animasyonlu taşı sabitler */
+        @media (min-width: 600px) { 
+            .square { font-size: 45px; } 
+            .ranks, .files { font-size: 20px; } 
+            .animated-piece { font-size: 45px; width: 75px; height: 75px; }
+        }
+
         #waiting-overlay {
             position: absolute; top: 0; left: 32px; right: 0; bottom: 32px;
             background: rgba(0,0,0,0.8); display: flex; justify-content: center;
@@ -153,7 +158,7 @@
             document.getElementById('waiting-overlay').style.display = 'flex';
         });
 
-        // Her iki taraf da hazır olduğunda (veya ilk girişte) oyunu başlatır
+        // Her iki taraf da hazır olduğunda tetiklenir
         socket.on('startGame', () => {
             opponentPresent = true; 
             document.getElementById('waiting-overlay').style.display = 'none';
@@ -162,14 +167,14 @@
             resetGame();
         });
 
-        // Rakip tekrar oyna butonuna bastığında burası tetiklenir
+        // Rakip "Tekrar Oyna" butonuna bastığında tetiklenir
         socket.on('opponentWantsRematch', () => {
             document.getElementById('rematch-status').textContent = "Rakip rövanş istedi!";
         });
 
         socket.on('move', (data) => {
             const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
-            // Rakip hamle yapınca eski konumunda 2 saniye sabit parlama
+            // Rakip hamleyi tamamlayınca 2 saniye sabit parlar
             if(sq) sq.classList.add('ai-selected');
             setTimeout(() => {
                 if(sq) sq.classList.remove('ai-selected');
@@ -314,7 +319,6 @@
                 if (isCheck) showMessage(currentTurn === myRole ? "RAKİP KAZANDI (MAT)" : "TEBRİKLER, SEN KAZANDIN!");
                 else showMessage("🤝 PAT (BERABERE)");
                 
-                // Oyun bittiğinde tekrar oyna butonunu göster
                 document.getElementById('restart-btn').style.display = 'inline-block';
             } else if (isCheck) {
                 showMessage("⚠️ ŞAH ÇEKİLDİ!"); document.getElementById('status-bar').style.color = "#ff3333";
@@ -339,7 +343,7 @@
             setTimeout(() => {
                 document.getElementById('animation-layer').innerHTML = '';
                 
-                // PİYON TERFİSİ MANTIĞI
+                // PİYON TERFİSİ 
                 if (p === 'P' && eR === 0) p = 'V'; 
                 if (p === 'p' && eR === 7) p = 'v';
                 
@@ -381,7 +385,6 @@
             selectedSquare = null;
             validMoves = [];
             createBoard();
-            // Rakibe sinyal KESİNLİKLE gönderilmiyor
         }
 
         function selectPiece(r, c) {
@@ -389,7 +392,6 @@
             selectedSquare = { row: r, col: c, cantMove: v.length === 0 };
             validMoves = v; 
             createBoard();
-            // Rakibe sinyal KESİNLİKLE gönderilmiyor
         }
 
         function createCoordinates() {
