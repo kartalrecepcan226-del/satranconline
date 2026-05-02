@@ -34,7 +34,9 @@ io.on('connection', (socket) => {
         }
     });
 
+    // SEÇİM VERİSİNİ İLETEN KRİTİK NOKTA
     socket.on('selectPiece', (data) => {
+        // data.r tanımsız gelse bile rakibe iletilir, böylece rakipte yanıp sönme söner.
         socket.to(data.roomID).emit('opponentSelected', data);
     });
 
@@ -44,7 +46,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         for (let roomID in rooms) {
-            if (rooms[roomID].includes(socket.id)) {
+            if (rooms[roomID] && rooms[roomID].includes(socket.id)) {
                 io.to(roomID).emit('opponentDisconnected');
                 delete rooms[roomID];
             }

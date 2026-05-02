@@ -18,8 +18,7 @@
 
         #main-menu button {
             background-color: #333333; color: #ffffff; border: 1px solid #777;
-            padding: 12px; font-size: 18px; cursor: pointer; border-radius: 8px;
-            width: 100%; margin: 8px 0;
+            padding: 12px; font-size: 18px; cursor: pointer; border-radius: 8px; width: 100%; margin: 8px 0;
         }
 
         #main-menu input {
@@ -175,7 +174,8 @@
 
         socket.on('opponentSelected', (data) => {
             clearVisuals();
-            if (data && data.r !== undefined) {
+            // r bilgisi null/undefined değilse yanıp söndür
+            if (data && data.r !== undefined && data.r !== null) {
                 const sq = document.getElementById(`sq-${data.r}-${data.c}`);
                 if (sq) sq.classList.add('opponent-selecting');
             }
@@ -342,13 +342,11 @@
 
             const p = boardState[r][c];
 
-            // 1. MEVCUT SEÇİM İPTALİ (Aynı yere veya boşluğa tıklayınca her şeyi temizle)
             if (selectedSquare) {
                 if (validMoves.some(m => m.r === r && m.c === c)) {
                     animateMove(selectedSquare.row, selectedSquare.col, r, c);
                 } 
                 else if (isFriendly(boardState[selectedSquare.row][selectedSquare.col], p)) {
-                    // Kendi taşımız ama farklı ise yeni seçim
                     if (selectedSquare.row === r && selectedSquare.col === c) {
                         clearMySelection();
                     } else {
@@ -356,9 +354,7 @@
                     }
                 } 
                 else {
-                    // Geçersiz yer: Seçimi temizle
                     clearMySelection();
-                    // Eğer dokunulan yerde rakip taşı varsa kırmızıyı göster
                     if (p !== '') selectPiece(r, c);
                 }
             } else if (p !== '' && ((currentTurn === 'white' && isWhite(p)) || (currentTurn === 'black' && isBlack(p)))) {
@@ -366,12 +362,12 @@
             }
         }
 
-        // --- SEÇİMİ TEMİZLEME FONKSİYONU ---
         function clearMySelection() {
             selectedSquare = null;
             validMoves = [];
             createBoard();
-            if (gameMode === 'online') socket.emit('selectPiece', { r: undefined, roomID: currentRoom });
+            // r: null göndererek rakipte yanıp sönmeyi temizle
+            if (gameMode === 'online') socket.emit('selectPiece', { r: null, roomID: currentRoom });
         }
 
         function selectPiece(r, c) {
@@ -380,8 +376,7 @@
                 selectedSquare = { row: r, col: c, cantMove: true };
                 validMoves = [];
                 createBoard();
-                // Oynanamaz taşı rakibe bildirme (isteğe bağlı, şu an sadece bizde kırmızı yanar)
-                if (gameMode === 'online') socket.emit('selectPiece', { r: undefined, roomID: currentRoom });
+                if (gameMode === 'online') socket.emit('selectPiece', { r: null, roomID: currentRoom });
                 return;
             }
             selectedSquare = { row: r, col: c, cantMove: false };
@@ -411,7 +406,7 @@
                 }
             }
         }
-        // ... AI fonksiyonları (minimax vb.) aynen devam eder ...
+        
         const pVals = { 'p':10, 'a':30, 'f':30, 'k':50, 'v':90, 'ş':900, 'P':-10, 'A':-30, 'F':-30, 'K':-50, 'V':-90, 'Ş':-900 };
         function evaluateBoard() {
             let sc = 0;
