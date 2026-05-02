@@ -34,9 +34,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    // SEÇİM VERİSİNİ İLETEN KRİTİK NOKTA
+    // RAKİBE SEÇİM BİLGİSİNİ GÖNDERİR
     socket.on('selectPiece', (data) => {
-        // data.r tanımsız gelse bile rakibe iletilir, böylece rakipte yanıp sönme söner.
         socket.to(data.roomID).emit('opponentSelected', data);
     });
 

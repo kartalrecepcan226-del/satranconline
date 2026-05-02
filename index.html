@@ -60,17 +60,18 @@
         }
         @media (min-width: 600px) { .square { font-size: 45px; } .ranks, .files { font-size: 20px; } }
 
-        /* GÖRSEL ÇERÇEVELER */
-        .selected { border: 4px solid #ffffff !important; z-index: 10; } 
-        .cant-move { border: 4px solid #ff3333 !important; z-index: 10; } 
+        /* KRİTİK GÖRSEL ÇERÇEVE SINIFLARI */
+        .selected { border: 4px solid #ffffff !important; z-index: 20; } /* SENDE SABİT */
+        .cant-move { border: 4px solid #ff3333 !important; z-index: 20; } /* SENDE SABİT KIRMIZI */
         
+        /* RAKİPTE YANIP SÖNME (Kesin çözüm için animasyon revize edildi) */
         .opponent-selecting { 
             border: 4px solid #ffffff !important; 
-            animation: blink-frame 1s infinite; 
-            z-index: 10; 
+            animation: blink-frame 0.6s step-start infinite !important; 
+            z-index: 20; 
         }
 
-        .ai-selected { border: 4px solid #ffffff !important; z-index: 10; } 
+        .ai-selected { border: 4px solid #ffffff !important; z-index: 20; } /* HAMLE GELİNCE 2 SN SABİT */
 
         .valid-move { 
             border: 3px solid #ffffff; 
@@ -78,7 +79,11 @@
             animation: pulse-move 1.5s infinite; 
         }
 
-        @keyframes blink-frame { 0%, 100% { border-color: #ffffff; } 50% { border-color: transparent; } }
+        @keyframes blink-frame { 
+            0%, 100% { border-color: #ffffff; } 
+            50% { border-color: transparent; } 
+        }
+        
         @keyframes pulse-move { 0%, 100% { border-color: #ffffff; opacity: 1; } 50% { border-color: #444444; opacity: 0.5; } }
 
         .animated-piece {
@@ -173,16 +178,18 @@
         });
 
         socket.on('opponentSelected', (data) => {
-            clearVisuals();
-            // r bilgisi null/undefined değilse yanıp söndür
-            if (data && data.r !== undefined && data.r !== null) {
+            // Önceki tüm rakip seçimlerini temizle
+            document.querySelectorAll('.opponent-selecting').forEach(el => el.classList.remove('opponent-selecting'));
+            
+            // Veri varsa ve koordinat geçerliyse yanıp sönmeyi ekle
+            if (data && data.r !== null && data.r !== undefined) {
                 const sq = document.getElementById(`sq-${data.r}-${data.c}`);
                 if (sq) sq.classList.add('opponent-selecting');
             }
         });
 
         socket.on('move', (data) => {
-            clearVisuals();
+            document.querySelectorAll('.opponent-selecting').forEach(el => el.classList.remove('opponent-selecting'));
             const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
             if(sq) sq.classList.add('ai-selected');
             setTimeout(() => {
@@ -190,12 +197,6 @@
                 animateMove(data.from.r, data.from.c, data.to.r, data.to.c, true);
             }, 2000); 
         });
-
-        function clearVisuals() {
-            document.querySelectorAll('.opponent-selecting, .ai-selected').forEach(el => {
-                el.classList.remove('opponent-selecting', 'ai-selected');
-            });
-        }
 
         function showMessage(msg) { document.getElementById('status-bar').textContent = msg; }
         
@@ -366,7 +367,6 @@
             selectedSquare = null;
             validMoves = [];
             createBoard();
-            // r: null göndererek rakipte yanıp sönmeyi temizle
             if (gameMode === 'online') socket.emit('selectPiece', { r: null, roomID: currentRoom });
         }
 
@@ -406,7 +406,7 @@
                 }
             }
         }
-        
+
         const pVals = { 'p':10, 'a':30, 'f':30, 'k':50, 'v':90, 'ş':900, 'P':-10, 'A':-30, 'F':-30, 'K':-50, 'V':-90, 'Ş':-900 };
         function evaluateBoard() {
             let sc = 0;
