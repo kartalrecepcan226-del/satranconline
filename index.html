@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Erişilebilir Satranç - Online & AI</title>
+    <title>Erişilebilir Satranç - Online & AI (V15)</title>
     <style>
         body {
             background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
-            display: flex; flex-direction: column; align-items: center; margin: 0; padding-top: 20px;
-            overflow-x: hidden;
+            display: flex; flex-direction: column; align-items: center; 
+            margin: 0; padding: 5px; overflow-x: hidden;
         }
 
         #main-menu {
-            text-align: center; background: #1e1e1e; padding: 30px; border-radius: 15px; 
+            text-align: center; background: #1e1e1e; padding: 20px; border-radius: 15px; 
             border: 2px solid #b89b42; margin-top: 20px; width: 90%; max-width: 400px;
         }
 
@@ -24,13 +24,13 @@
 
         #main-menu input {
             padding: 12px; font-size: 18px; border-radius: 5px; border: 1px solid #777;
-            background: #000; color: #fff; width: 80%; margin-bottom: 10px; text-align: center;
+            background: #000; color: #fff; width: 90%; margin-bottom: 10px; text-align: center;
         }
 
         #menu {
-            display: flex; gap: 10px; margin-bottom: 15px; align-items: center;
-            background-color: #1e1e1e; padding: 10px 15px; border-radius: 8px; border: 2px solid #333;
-            flex-wrap: wrap; justify-content: center;
+            display: flex; gap: 10px; margin-bottom: 10px; align-items: center;
+            background-color: #1e1e1e; padding: 10px; border-radius: 8px; border: 2px solid #333;
+            width: 95%; justify-content: center; flex-wrap: wrap;
         }
 
         #menu button, #menu select {
@@ -38,18 +38,11 @@
             padding: 8px 12px; font-size: 14px; cursor: pointer; border-radius: 5px;
         }
 
-        #status-bar { font-size: 20px; color: #aaaaaa; margin-bottom: 20px; min-height: 24px; font-weight: bold; text-align: center; }
+        #status-bar { font-size: 18px; color: #aaaaaa; margin-bottom: 15px; min-height: 24px; font-weight: bold; text-align: center; }
         
         #game-container {
             display: grid; grid-template-columns: 30px 1fr; grid-template-rows: 1fr 30px;    
-            gap: 2px; position: relative; width: 98vw; max-width: 600px;
-        }
-
-        #waiting-overlay {
-            position: absolute; top: 0; left: 32px; right: 0; bottom: 32px;
-            background: rgba(0,0,0,0.8); display: flex; justify-content: center;
-            align-items: center; z-index: 200; color: #e6ce55; font-size: 24px; font-weight: bold;
-            border-radius: 5px; text-align: center;
+            gap: 2px; position: relative; width: 95vw; max-width: 600px;
         }
 
         #board {
@@ -66,44 +59,57 @@
             display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none;
             box-sizing: border-box; border: 0.5px solid #b89b42; position: relative;
         }
-        @media (min-width: 600px) { .square { font-size: 45px; } }
 
-        .selected { border: 3px solid #ffffff; z-index: 2; }
-        .cant-move { border: 3px solid #ff3333; z-index: 2; }
-        .valid-move { border: 3px solid #ffffff; z-index: 2; animation: pulse-white 1.2s infinite; }
-        .ai-selected { border: 3px solid #ffffff !important; z-index: 4 !important; animation: pulse-white 1.2s infinite !important; }
+        @media (min-width: 600px) { .square { font-size: 45px; } .ranks, .files { font-size: 20px; } }
+
+        /* GÖRSEL EFEKTLER GÜNCELLENDİ */
+        .selected { border: 4px solid #ffffff !important; z-index: 10; } /* Dokunan kişide kalın sabit beyaz */
         
-        /* RAKİP SEÇTİĞİNDE YANAN SARI ÇERÇEVE */
-        .opponent-selecting { border: 3px solid #e6ce55 !important; animation: blink-yellow 0.8s infinite !important; z-index: 5; }
-        @keyframes blink-yellow { 0%, 100% { border-color: #e6ce55; opacity: 1; } 50% { border-color: transparent; opacity: 0.5; } }
-
-        @keyframes pulse-white {
-            0%, 100% { border-color: #ffffff; }
-            50% { border-color: #444444; }
+        .opponent-selecting { 
+            border: 4px solid #ffffff !important; 
+            animation: blink-white 1s infinite; /* Rakipte yanıp sönen kalın beyaz */
+            z-index: 10; 
         }
-        
+
+        .ai-selected { 
+            border: 4px solid #ffffff !important; 
+            z-index: 10; 
+        } /* Hamle yapıldığında rakipte 2 saniye sabit yanan kalın beyaz */
+
+        @keyframes blink-white {
+            0%, 100% { border-color: #ffffff; opacity: 1; }
+            50% { border-color: transparent; opacity: 0.3; }
+        }
+
+        .valid-move { border: 3px solid #ffffff; z-index: 2; opacity: 0.8; }
+        .cant-move { border: 4px solid #ff3333 !important; z-index: 10; }
+
         .animated-piece {
             position: absolute; font-size: 8vw; color: #ffffff; display: flex; justify-content: center;
-            align-items: center; width: 11vw; height: 11vw; max-width: 75px; max-height: 75px; z-index: 100;
+            align-items: center; width: 11.5vw; height: 11.5vw; max-width: 75px; max-height: 75px; z-index: 100;
             transition: left 0.6s ease-in-out, top 0.6s ease-in-out; pointer-events: none;
         }
         @media (min-width: 600px) { .animated-piece { font-size: 45px; width: 75px; height: 75px; } }
 
-        .error-msg { color: #ff3333; margin-top: 10px; font-weight: bold; min-height: 20px; font-size: 14px; }
+        #waiting-overlay {
+            position: absolute; top: 0; left: 32px; right: 0; bottom: 32px;
+            background: rgba(0,0,0,0.8); display: flex; justify-content: center;
+            align-items: center; z-index: 200; color: #e6ce55; font-size: 24px; font-weight: bold; text-align: center;
+        }
     </style>
 </head>
 <body>
 
     <div id="main-menu">
         <h1>♟️ Satranç Online</h1>
-        <button onclick="startMode('pve')">Bilgisayara Karşı Oyna</button>
-        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #444;">
+        <button onclick="startMode('pve')">🤖 Bilgisayara Karşı</button>
+        <div style="margin-top: 20px; padding: 15px; border-top: 1px solid #444;">
             <input type="text" id="room-input" placeholder="Oda Adı">
             <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                <button onclick="handleOnline('create')" style="background-color: #2e7d32; width: 120px; font-size: 15px;">Oda Kur</button>
-                <button onclick="handleOnline('join')" style="background-color: #1565c0; width: 120px; font-size: 15px;">Odaya Katıl</button>
+                <button onclick="handleOnline('create')" style="background-color: #2e7d32;">Oda Kur</button>
+                <button onclick="handleOnline('join')" style="background-color: #1565c0;">Odaya Katıl</button>
             </div>
-            <div id="menu-error" class="error-msg"></div>
+            <div id="menu-error" style="color: #ff3333; font-size: 14px; margin-top: 10px;"></div>
         </div>
     </div>
 
@@ -168,31 +174,35 @@
         });
 
         socket.on('startGame', () => {
-            opponentPresent = true;
-            document.getElementById('waiting-overlay').style.display = 'none';
+            opponentPresent = true; document.getElementById('waiting-overlay').style.display = 'none';
             updateStatusBar();
         });
 
-        // RAKİP TAŞ SEÇTİĞİNDE SARI YANMA
+        // RAKİP TAŞA DOKUNDUĞUNDA: Kalın beyaz yanıp sönsün
         socket.on('opponentSelected', (data) => {
-            document.querySelectorAll('.opponent-selecting').forEach(el => el.classList.remove('opponent-selecting'));
+            clearVisuals();
             const sq = document.getElementById(`sq-${data.r}-${data.c}`);
             if (sq) sq.classList.add('opponent-selecting');
         });
 
+        // RAKİP TAŞLA OYNADIĞINDA: Dokunma bitsin, 2 saniye SABİT kalın beyaz yansın
         socket.on('move', (data) => {
-            document.querySelectorAll('.opponent-selecting').forEach(el => el.classList.remove('opponent-selecting'));
+            clearVisuals();
             const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
             if(sq) sq.classList.add('ai-selected');
             setTimeout(() => {
                 if(sq) sq.classList.remove('ai-selected');
                 animateMove(data.from.r, data.from.c, data.to.r, data.to.c, true);
-            }, 1500);
+            }, 2000); // 2 saniye sabit yanma
         });
 
-        socket.on('opponentDisconnected', () => {
-            gameOver = true; showMessage("⚠️ Rakip ayrıldı.");
-        });
+        function clearVisuals() {
+            document.querySelectorAll('.opponent-selecting, .ai-selected').forEach(el => {
+                el.classList.remove('opponent-selecting', 'ai-selected');
+            });
+        }
+
+        socket.on('opponentDisconnected', () => { gameOver = true; showMessage("⚠️ Rakip ayrıldı."); });
 
         function showMessage(msg) { document.getElementById('status-bar').textContent = msg; }
         
@@ -204,14 +214,14 @@
             showMessage(msg);
         }
 
-        function isWhite(piece) { return "KAFVŞP".includes(piece); }
-        function isBlack(piece) { return "kafvşp".includes(piece); }
+        function isWhite(p) { return "KAFVŞP".includes(p); }
+        function isBlack(p) { return "kafvşp".includes(p); }
         function isEmpty(r, c) { return boardState[r][c] === ''; }
-        function isEnemy(p1, p2) { return (p1 !== '' && p2 !== '') && ((isWhite(p1) && isBlack(p2)) || (isBlack(p1) && isWhite(p2))); }
-        function isFriendly(p1, p2) { return (p1 !== '' && p2 !== '') && ((isWhite(p1) && isWhite(p2)) || (isBlack(p1) && isBlack(p2))); }
+        function isEnemy(p1, p2) { return p1 !== '' && p2 !== '' && ((isWhite(p1) && isBlack(p2)) || (isBlack(p1) && isWhite(p2))); }
+        function isFriendly(p1, p2) { return p1 !== '' && p2 !== '' && ((isWhite(p1) && isWhite(p2)) || (isBlack(p1) && isBlack(p2))); }
         function isOnBoard(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
 
-        function setDifficulty(level) { aiDepth = parseInt(level); }
+        function setDifficulty(l) { aiDepth = parseInt(l); }
 
         function resetGame() {
             gameId++;
@@ -225,17 +235,17 @@
         }
 
         function findKing(color) {
-            let kingChar = color === 'white' ? 'Ş' : 'ş';
-            for (let r = 0; r < 8; r++) { for (let c = 0; c < 8; c++) { if (boardState[r][c] === kingChar) return {r, c}; } }
+            let kChar = color === 'white' ? 'Ş' : 'ş';
+            for (let r = 0; r < 8; r++) { for (let c = 0; c < 8; c++) { if (boardState[r][c] === kChar) return {r, c}; } }
             return null;
         }
 
-        function isSquareUnderAttack(targetR, targetC, attackerColor) {
+        function isSquareUnderAttack(tr, tc, attColor) {
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
-                    let piece = boardState[r][c];
-                    if (piece !== '' && ((attackerColor === 'white' && isWhite(piece)) || (attackerColor === 'black' && isBlack(piece)))) {
-                        if (getPseudoLegalMoves(r, c).some(m => m.r === targetR && m.c === targetC)) return true;
+                    let p = boardState[r][c];
+                    if (p !== '' && ((attColor === 'white' && isWhite(p)) || (attColor === 'black' && isBlack(p)))) {
+                        if (getPseudoLegalMoves(r, c).some(m => m.r === tr && m.c === tc)) return true;
                     }
                 }
             }
@@ -243,40 +253,38 @@
         }
 
         function getPseudoLegalMoves(r, c) {
-            const piece = boardState[r][c]; let moves = []; if (!piece) return moves;
-            const isW = isWhite(piece); const pType = piece.toLowerCase();
-            if (pType === 'p') {
-                const dir = isW ? -1 : 1; const startRow = isW ? 6 : 1;
+            const p = boardState[r][c]; let moves = []; if (!p) return moves;
+            const isW = isWhite(p), type = p.toLowerCase();
+            if (type === 'p') {
+                const dir = isW ? -1 : 1, start = isW ? 6 : 1;
                 if (isOnBoard(r + dir, c) && isEmpty(r + dir, c)) {
                     moves.push({r: r + dir, c: c});
-                    if (r === startRow && isEmpty(r + 2 * dir, c)) moves.push({r: r + 2 * dir, c: c});
+                    if (r === start && isEmpty(r + 2 * dir, c)) moves.push({r: r + 2 * dir, c: c});
                 }
-                if (isOnBoard(r + dir, c - 1) && isEnemy(piece, boardState[r + dir][c - 1])) moves.push({r: r + dir, c: c - 1});
-                if (isOnBoard(r + dir, c + 1) && isEnemy(piece, boardState[r + dir][c + 1])) moves.push({r: r + dir, c: c + 1});
+                if (isOnBoard(r + dir, c - 1) && isEnemy(p, boardState[r + dir][c - 1])) moves.push({r: r + dir, c: c - 1});
+                if (isOnBoard(r + dir, c + 1) && isEnemy(p, boardState[r + dir][c + 1])) moves.push({r: r + dir, c: c + 1});
             }
-            if (pType === 'a') {
+            if (type === 'a') {
                 [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(m => {
                     let nr = r + m[0], nc = c + m[1];
-                    if (isOnBoard(nr, nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r: nr, c: nc});
+                    if (isOnBoard(nr, nc) && !isFriendly(p, boardState[nr][nc])) moves.push({r: nr, c: nc});
                 });
             }
-            const getSliding = (dirs) => {
-                dirs.forEach(d => {
-                    let nr = r + d[0], nc = c + d[1];
-                    while (isOnBoard(nr, nc)) {
-                        if (isEmpty(nr, nc)) moves.push({r: nr, c: nc});
-                        else { if (isEnemy(piece, boardState[nr][nc])) moves.push({r: nr, c: nc}); break; }
-                        nr += d[0]; nc += d[1];
-                    }
-                });
-            };
-            if (pType === 'k') getSliding([[-1,0], [1,0], [0,-1], [0,1]]);
-            if (pType === 'f') getSliding([[-1,-1], [-1,1], [1,-1], [1,1]]);
-            if (pType === 'v') getSliding([[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]]);
-            if (pType === 'ş') {
+            const slide = (ds) => ds.forEach(d => {
+                let nr = r + d[0], nc = c + d[1];
+                while (isOnBoard(nr, nc)) {
+                    if (isEmpty(nr, nc)) moves.push({r: nr, c: nc});
+                    else { if (isEnemy(p, boardState[nr][nc])) moves.push({r: nr, c: nc}); break; }
+                    nr += d[0]; nc += d[1];
+                }
+            });
+            if (type === 'k') slide([[-1,0], [1,0], [0,-1], [0,1]]);
+            if (type === 'f') slide([[-1,-1], [-1,1], [1,-1], [1,1]]);
+            if (type === 'v') slide([[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]]);
+            if (type === 'ş') {
                 [[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [-1,1], [1,-1], [1,1]].forEach(m => {
                     let nr = r + m[0], nc = c + m[1];
-                    if (isOnBoard(nr, nc) && !isFriendly(piece, boardState[nr][nc])) moves.push({r: nr, c: nc});
+                    if (isOnBoard(nr, nc) && !isFriendly(p, boardState[nr][nc])) moves.push({r: nr, c: nc});
                 });
             }
             return moves;
@@ -314,15 +322,15 @@
             } else { updateStatusBar(); }
         }
 
-        function animateMove(sR, sC, eR, eC, isRemote = false) {
+        function animateMove(sR, sC, eR, eC, isRem = false) {
             isAnimating = true; let p = boardState[sR][sC];
             boardState[sR][sC] = ''; selectedSquare = null; validMoves = []; createBoard();
             const ghost = document.createElement('div'); ghost.classList.add('animated-piece'); ghost.textContent = p;
             
             const bRect = document.getElementById('board').getBoundingClientRect();
-            const sqSize = bRect.width / 8;
-            let sX = isFlipped ? (7-sC)*sqSize : sC*sqSize, sY = isFlipped ? (7-sR)*sqSize : sR*sqSize;
-            let eX = isFlipped ? (7-eC)*sqSize : eC*sqSize, eY = isFlipped ? (7-eR)*sqSize : eR*sqSize;
+            const sqS = bRect.width / 8;
+            let sX = isFlipped ? (7-sC)*sqS : sC*sqS, sY = isFlipped ? (7-sR)*sqS : sR*sqS;
+            let eX = isFlipped ? (7-eC)*sqS : eC*sqS, eY = isFlipped ? (7-eR)*sqS : eR*sqS;
 
             ghost.style.left = sX+'px'; ghost.style.top = sY+'px';
             document.getElementById('animation-layer').appendChild(ghost);
@@ -331,7 +339,7 @@
                 document.getElementById('animation-layer').innerHTML = ''; boardState[eR][eC] = p;
                 currentTurn = currentTurn === 'white' ? 'black' : 'white';
                 isAnimating = false; checkGameState(); createBoard();
-                if(!isRemote && gameMode === 'online') socket.emit('move', { from:{r:sR, c:sC}, to:{r:eR, c:eC}, roomID:currentRoom });
+                if(!isRem && gameMode === 'online') socket.emit('move', { from:{r:sR, c:sC}, to:{r:eR, c:eC}, roomID:currentRoom });
                 if(!gameOver && gameMode === 'pve' && currentTurn === 'black') setTimeout(makeAIMove, 50);
             }, 600);
         }
@@ -346,14 +354,14 @@
                 if (validMoves.some(m => m.r === r && m.c === c)) {
                     animateMove(selectedSquare.row, selectedSquare.col, r, c);
                 } else if (isFriendly(boardState[selectedSquare.row][selectedSquare.col], p)) {
-                    performSelection(r, c);
+                    selectPiece(r, c);
                 } else { selectedSquare = null; validMoves = []; createBoard(); }
             } else if (p !== '' && ((currentTurn === 'white' && isWhite(p)) || (currentTurn === 'black' && isBlack(p)))) {
-                performSelection(r, c);
+                selectPiece(r, c);
             }
         }
 
-        function performSelection(r, c) {
+        function selectPiece(r, c) {
             let v = getValidMoves(r, c);
             selectedSquare = { row: r, col: c, cantMove: v.length === 0 };
             validMoves = v; createBoard();

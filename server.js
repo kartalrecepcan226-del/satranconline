@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,7 +11,6 @@ app.use(express.static(__dirname));
 let rooms = {}; 
 
 io.on('connection', (socket) => {
-    // ODA KURMA
     socket.on('createRoom', (roomID) => {
         if (rooms[roomID]) {
             socket.emit('errorMsg', 'Bu isimde bir oda zaten var.');
@@ -23,7 +21,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ODAYA KATILMA
     socket.on('joinRoom', (roomID) => {
         if (!rooms[roomID]) {
             socket.emit('errorMsg', 'Oda bulunamadı.');
@@ -37,12 +34,10 @@ io.on('connection', (socket) => {
         }
     });
 
-    // TAŞ SEÇİMİNİ İLETME (YENİ)
     socket.on('selectPiece', (data) => {
         socket.to(data.roomID).emit('opponentSelected', data);
     });
 
-    // HAMLE İLETME
     socket.on('move', (data) => {
         socket.to(data.roomID).emit('move', data);
     });
