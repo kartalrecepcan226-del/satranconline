@@ -19,7 +19,7 @@
         #main-menu button {
             background-color: #333333; color: #ffffff; border: 1px solid #777;
             padding: 12px; font-size: 18px; cursor: pointer; border-radius: 8px;
-            transition: 0.2s; width: 100%; margin: 8px 0;
+            width: 100%; margin: 8px 0;
         }
 
         #main-menu input {
@@ -61,7 +61,7 @@
         }
         @media (min-width: 600px) { .square { font-size: 45px; } .ranks, .files { font-size: 20px; } }
 
-        /* GÖRSEL ÇERÇEVE SİSTEMİ */
+        /* GÖRSEL ÇERÇEVELER */
         .selected { border: 4px solid #ffffff !important; z-index: 10; } 
         .cant-move { border: 4px solid #ff3333 !important; z-index: 10; } 
         
@@ -71,10 +71,7 @@
             z-index: 10; 
         }
 
-        .ai-selected { 
-            border: 4px solid #ffffff !important; 
-            z-index: 10; 
-        } 
+        .ai-selected { border: 4px solid #ffffff !important; z-index: 10; } 
 
         .valid-move { 
             border: 3px solid #ffffff; 
@@ -82,15 +79,8 @@
             animation: pulse-move 1.5s infinite; 
         }
 
-        @keyframes blink-frame {
-            0%, 100% { border-color: #ffffff; }
-            50% { border-color: transparent; }
-        }
-
-        @keyframes pulse-move {
-            0%, 100% { border-color: #ffffff; opacity: 1; }
-            50% { border-color: #444444; opacity: 0.5; }
-        }
+        @keyframes blink-frame { 0%, 100% { border-color: #ffffff; } 50% { border-color: transparent; } }
+        @keyframes pulse-move { 0%, 100% { border-color: #ffffff; opacity: 1; } 50% { border-color: #444444; opacity: 0.5; } }
 
         .animated-piece {
             position: absolute; font-size: 8vw; color: #ffffff; display: flex; justify-content: center;
@@ -168,7 +158,6 @@
         }
 
         function initUI() { document.getElementById('main-menu').style.display = 'none'; document.getElementById('game-ui').style.display = 'block'; }
-
         socket.on('errorMsg', (msg) => { document.getElementById('menu-error').textContent = msg; });
 
         socket.on('playerRole', (data) => {
@@ -186,8 +175,10 @@
 
         socket.on('opponentSelected', (data) => {
             clearVisuals();
-            const sq = document.getElementById(`sq-${data.r}-${data.c}`);
-            if (sq) sq.classList.add('opponent-selecting');
+            if (data && data.r !== undefined) {
+                const sq = document.getElementById(`sq-${data.r}-${data.c}`);
+                if (sq) sq.classList.add('opponent-selecting');
+            }
         });
 
         socket.on('move', (data) => {
@@ -205,8 +196,6 @@
                 el.classList.remove('opponent-selecting', 'ai-selected');
             });
         }
-
-        socket.on('opponentDisconnected', () => { gameOver = true; showMessage("⚠️ Rakip ayrıldı."); });
 
         function showMessage(msg) { document.getElementById('status-bar').textContent = msg; }
         
@@ -275,7 +264,7 @@
                 });
             }
             const slide = (ds) => ds.forEach(d => {
-                let nr = r + d[0], nc = d + d[1];
+                let nr = r + d[0], nc = c + d[1];
                 while (isOnBoard(nr, nc)) {
                     if (isEmpty(nr, nc)) moves.push({r: nr, c: nc});
                     else { if (isEnemy(p, boardState[nr][nc])) moves.push({r: nr, c: nc}); break; }
@@ -330,12 +319,10 @@
             isAnimating = true; let p = boardState[sR][sC];
             boardState[sR][sC] = ''; selectedSquare = null; validMoves = []; createBoard();
             const ghost = document.createElement('div'); ghost.classList.add('animated-piece'); ghost.textContent = p;
-            
             const bRect = document.getElementById('board').getBoundingClientRect();
             const sqS = bRect.width / 8;
             let sX = isFlipped ? (7-sC)*sqS : sC*sqS, sY = isFlipped ? (7-sR)*sqS : sR*sqS;
             let eX = isFlipped ? (7-eC)*sqS : eC*sqS, eY = isFlipped ? (7-eR)*sqS : eR*sqS;
-
             ghost.style.left = sX+'px'; ghost.style.top = sY+'px';
             document.getElementById('animation-layer').appendChild(ghost);
             setTimeout(() => { ghost.style.left = eX+'px'; ghost.style.top = eY+'px'; }, 10);
@@ -355,43 +342,51 @@
 
             const p = boardState[r][c];
 
-            // Önceki seçimle aynı yere mi dokunuldu? (Seçim İptali)
-            if (selectedSquare && selectedSquare.row === r && selectedSquare.col === c) {
-                selectedSquare = null; validMoves = [];
-                createBoard();
-                return;
-            }
-
+            // 1. MEVCUT SEÇİM İPTALİ (Aynı yere veya boşluğa tıklayınca her şeyi temizle)
             if (selectedSquare) {
-                // Geçerli bir hamle mi?
                 if (validMoves.some(m => m.r === r && m.c === c)) {
                     animateMove(selectedSquare.row, selectedSquare.col, r, c);
                 } 
-                // Kendi taşımıza mı dokunduk? (Yeni seçim yap veya iptal et)
                 else if (isFriendly(boardState[selectedSquare.row][selectedSquare.col], p)) {
-                    selectPiece(r, c);
+                    // Kendi taşımız ama farklı ise yeni seçim
+                    if (selectedSquare.row === r && selectedSquare.col === c) {
+                        clearMySelection();
+                    } else {
+                        selectPiece(r, c);
+                    }
                 } 
-                // Geçersiz bir kareye dokunuldu (Seçim İptali)
                 else {
-                    selectedSquare = null; validMoves = []; createBoard();
+                    // Geçersiz yer: Seçimi temizle
+                    clearMySelection();
+                    // Eğer dokunulan yerde rakip taşı varsa kırmızıyı göster
+                    if (p !== '') selectPiece(r, c);
                 }
             } else if (p !== '' && ((currentTurn === 'white' && isWhite(p)) || (currentTurn === 'black' && isBlack(p)))) {
                 selectPiece(r, c);
             }
         }
 
+        // --- SEÇİMİ TEMİZLEME FONKSİYONU ---
+        function clearMySelection() {
+            selectedSquare = null;
+            validMoves = [];
+            createBoard();
+            if (gameMode === 'online') socket.emit('selectPiece', { r: undefined, roomID: currentRoom });
+        }
+
         function selectPiece(r, c) {
             let v = getValidMoves(r, c);
-            // Oynanamaz taş seçilirse (Kırmızı yanmaya devam eder ama validMove listesi boş kalır)
             if (v.length === 0) {
                 selectedSquare = { row: r, col: c, cantMove: true };
                 validMoves = [];
                 createBoard();
+                // Oynanamaz taşı rakibe bildirme (isteğe bağlı, şu an sadece bizde kırmızı yanar)
+                if (gameMode === 'online') socket.emit('selectPiece', { r: undefined, roomID: currentRoom });
                 return;
             }
-            // Oynanabilir taş seçilirse
             selectedSquare = { row: r, col: c, cantMove: false };
-            validMoves = v; createBoard();
+            validMoves = v; 
+            createBoard();
             if (gameMode === 'online') socket.emit('selectPiece', { r, c, roomID: currentRoom });
         }
 
@@ -416,7 +411,7 @@
                 }
             }
         }
-
+        // ... AI fonksiyonları (minimax vb.) aynen devam eder ...
         const pVals = { 'p':10, 'a':30, 'f':30, 'k':50, 'v':90, 'ş':900, 'P':-10, 'A':-30, 'F':-30, 'K':-50, 'V':-90, 'Ş':-900 };
         function evaluateBoard() {
             let sc = 0;
