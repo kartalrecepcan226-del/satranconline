@@ -38,11 +38,11 @@
             padding: 8px 12px; font-size: 14px; cursor: pointer; border-radius: 5px;
         }
 
-        #status-bar { font-size: 18px; color: #aaaaaa; margin-bottom: 15px; min-height: 24px; font-weight: bold; text-align: center; }
+        #status-bar { font-size: 20px; color: #aaaaaa; margin-bottom: 15px; min-height: 24px; font-weight: bold; text-align: center; }
         
         #game-container {
             display: grid; grid-template-columns: 30px 1fr; grid-template-rows: 1fr 30px;    
-            gap: 2px; position: relative; width: 95vw; max-aspect-ratio: 1/1; max-width: 600px;
+            gap: 2px; position: relative; width: 95vw; max-width: 600px;
         }
 
         #board {
@@ -61,25 +61,25 @@
         }
         @media (min-width: 600px) { .square { font-size: 45px; } .ranks, .files { font-size: 20px; } }
 
-        /* GÖRSEL ÇERÇEVE MANTIĞI */
-        .selected { border: 4px solid #ffffff !important; z-index: 10; } /* Seçen tarafta SABİT beyaz */
-        .cant-move { border: 4px solid #ff3333 !important; z-index: 10; } /* Yanlış taşta SABİT kırmızı */
+        /* GÖRSEL ÇERÇEVE SİSTEMİ (SIMETRIK) */
+        .selected { border: 4px solid #ffffff !important; z-index: 10; } /* Dokunan tarafta SABİT */
+        .cant-move { border: 4px solid #ff3333 !important; z-index: 10; } /* Hatalı taşta SABİT KIRMIZI */
         
         .opponent-selecting { 
             border: 4px solid #ffffff !important; 
-            animation: blink-frame 1s infinite; /* Rakipte YANIP SÖNEN beyaz */
+            animation: blink-frame 1s infinite; /* Rakipte YANIP SÖNEN */
             z-index: 10; 
         }
 
         .ai-selected { 
             border: 4px solid #ffffff !important; 
             z-index: 10; 
-        } /* Hamle gelince rakipte 2 saniye SABİT beyaz */
+        } /* Hamle gelince rakipte 2 saniye SABİT */
 
         .valid-move { 
             border: 3px solid #ffffff; 
             z-index: 5; 
-            animation: pulse-move 1.5s infinite; /* Oynanabilir kareler eskisi gibi pulse */
+            animation: pulse-move 1.5s infinite; /* Oynanabilir yerler pulse */
         }
 
         @keyframes blink-frame {
