@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Erişilebilir Satranç - V16</title>
+    <title>Erişilebilir Satranç - Online & AI</title>
     <style>
         body {
             background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
@@ -56,18 +56,18 @@
         }
         @media (min-width: 600px) { .square { font-size: 45px; } }
 
-        /* ÇERÇEVE SİSTEMİ - KESİN ÇÖZÜM */
-        .selected { border: 5px solid #ffffff !important; z-index: 30; } 
-        .cant-move { border: 5px solid #ff3333 !important; z-index: 30; } 
+        /* GÖRSEL EFEKTLER */
+        .selected { border: 5px solid #ffffff !important; z-index: 20; } /* SENDE SABİT BEYAZ */
+        .cant-move { border: 5px solid #ff3333 !important; z-index: 20; } /* SENDE SABİT KIRMIZI */
         
-        /* RAKİPTE YANIP SÖNME - STEP-START İLE KESİN EFEKT */
+        /* RAKİPTE YANIP SÖNME (PULSE EFEKTİ) */
         .opponent-selecting { 
             border: 5px solid #ffffff !important; 
-            animation: aggressive-blink 0.8s step-start infinite !important; 
-            z-index: 30; 
+            animation: pulse-move 1.2s infinite !important; /* Gidilebilir yerlerdeki efektin aynısı */
+            z-index: 20; 
         }
 
-        .ai-selected { border: 5px solid #ffffff !important; z-index: 30; } 
+        .ai-selected { border: 5px solid #ffffff !important; z-index: 20; } /* HAMLE GELİNCE SABİT */
 
         .valid-move { 
             border: 3px solid #ffffff; 
@@ -75,12 +75,10 @@
             animation: pulse-move 1.5s infinite; 
         }
 
-        @keyframes aggressive-blink { 
-            0%, 100% { border-color: #ffffff; } 
-            50% { border-color: transparent; } 
+        @keyframes pulse-move { 
+            0%, 100% { border-color: #ffffff; opacity: 1; } 
+            50% { border-color: #444444; opacity: 0.4; } 
         }
-        
-        @keyframes pulse-move { 0%, 100% { border-color: #ffffff; opacity: 1; } 50% { border-color: #444444; opacity: 0.5; } }
 
         .animated-piece {
             position: absolute; font-size: 8vw; color: #ffffff; display: flex; justify-content: center;
@@ -174,10 +172,7 @@
         });
 
         socket.on('opponentSelected', (data) => {
-            // Rakip ekranındaki tüm seçimleri önce temizle
-            document.querySelectorAll('.opponent-selecting').forEach(el => el.classList.remove('opponent-selecting'));
-            
-            // Eğer rakip gerçekten bir taşı seçtiyse (data.r null değilse)
+            clearVisuals();
             if (data && data.r !== null && data.r !== undefined) {
                 const sq = document.getElementById(`sq-${data.r}-${data.c}`);
                 if (sq) sq.classList.add('opponent-selecting');
@@ -185,7 +180,7 @@
         });
 
         socket.on('move', (data) => {
-            document.querySelectorAll('.opponent-selecting').forEach(el => el.classList.remove('opponent-selecting'));
+            clearVisuals();
             const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
             if(sq) sq.classList.add('ai-selected');
             setTimeout(() => {
@@ -194,13 +189,17 @@
             }, 2000); 
         });
 
-        // RAKİP ÇIKINCA OYUNU DURDUR
         socket.on('opponentDisconnected', () => {
             gameOver = true;
             showMessage("⚠️ RAKİP AYRILDI. OYUN BİTTİ.");
             document.getElementById('status-bar').style.color = "#ff3333";
-            alert("Rakip bağlantısı kesildi. Menüye dönmek için sayfayı yenileyin.");
         });
+
+        function clearVisuals() {
+            document.querySelectorAll('.opponent-selecting, .ai-selected').forEach(el => {
+                el.classList.remove('opponent-selecting', 'ai-selected');
+            });
+        }
 
         function showMessage(msg) { document.getElementById('status-bar').textContent = msg; }
         
@@ -371,7 +370,6 @@
             selectedSquare = null;
             validMoves = [];
             createBoard();
-            // Rakibe "seçim bitti" sinyalini zorla gönder
             if (gameMode === 'online') socket.emit('selectPiece', { r: null, roomID: currentRoom });
         }
 

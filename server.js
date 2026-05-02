@@ -35,7 +35,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('selectPiece', (data) => {
-        // Gelen veriyi (boş olsa bile) anında rakibe iletir
         socket.to(data.roomID).emit('opponentSelected', data);
     });
 
@@ -45,8 +44,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         for (let roomID in rooms) {
-            if (rooms[roomID].includes(socket.id)) {
-                // Rakibi durdur ve odayı yok et
+            if (rooms[roomID] && rooms[roomID].includes(socket.id)) {
                 io.to(roomID).emit('opponentDisconnected');
                 delete rooms[roomID];
             }
@@ -55,4 +53,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Sunucu 2026 versiyonu aktif.`));
+server.listen(PORT, () => console.log(`Sunucu aktif.`));
