@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Erişilebilir Satranç - Online & Yapay Zeka</title>
+    <title>Erişilebilir Satranç - Online</title>
     <style>
         body {
             background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
@@ -151,13 +151,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Oyuncu kimliğini (Token) tarayıcıya kaydet/oluştur
-        let playerToken = sessionStorage.getItem('chessPlayerToken');
-        if (!playerToken) {
-            playerToken = Math.random().toString(36).substring(2, 10);
-            sessionStorage.setItem('chessPlayerToken', playerToken);
-        }
-
         let boardState = [], selectedSquare = null, validMoves = [], currentTurn = 'white';
         let isAnimating = false, gameOver = false, gameMode = 'pvp', myRole = 'white';
         let currentRoom = null, opponentPresent = false, gameId = 0, aiDepth = 2, isFlipped = false;
@@ -178,8 +171,8 @@
         function handleOnline(action) {
             const roomID = document.getElementById('room-input').value;
             if (!roomID) return alert("Oda adı girin!");
-            // Token ile birlikte odaya bağlanılıyor
-            socket.emit(action === 'create' ? 'createRoom' : 'joinRoom', { roomID, token: playerToken });
+            // Token zorunluluğu kalktı, sadece oda adı gidiyor
+            socket.emit(action === 'create' ? 'createRoom' : 'joinRoom', roomID);
         }
 
         function initUI() { 

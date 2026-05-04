@@ -11,15 +11,12 @@ app.use(express.static(__dirname));
 let rooms = {}; 
 
 io.on('connection', (socket) => {
-    socket.on('createRoom', (data) => {
-        const { roomID, token } = data;
+    socket.on('createRoom', (roomID) => {
         if (rooms[roomID]) {
             socket.emit('errorMsg', 'Bu isimde bir oda zaten var.');
         } else {
-            // Artık odaları token ve socket kimlikleriyle takip ediyoruz
+            // Token kaldırıldı, sadece socket ID'ler tutuluyor
             rooms[roomID] = { 
-                white: token, 
-                black: null, 
                 sockets: { white: socket.id, black: null }, 
                 readyForRestart: [] 
             };
@@ -28,40 +25,41 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('joinRoom', (data) => {
-        const { roomID, token } = data;
+    socket.on('joinRoom', (roomID) => {
         const room = rooms[roomID];
 
         if (!room) {
             return socket.emit('errorMsg', 'Oda bulunamadı.');
         }
 
-        // BEYAZ oyuncu düşüp tekrar girerse
-        if (room.white === token) {
+        // BEYAZ eksikse (Beyaz düşmüş ve geri dönüyorsa)
+        if (!room.sockets.white) {
             room.sockets.white = socket.id;
             socket.join(roomID);
             socket.emit('playerRole', { role: 'white', roomID, isReconnect: true });
             // Odada bekleyen siyahtan oyunun güncel halini iste
             if (room.sockets.black) io.to(room.sockets.black).emit('provideSyncData', socket.id);
         } 
-        // SİYAH oyuncu düşüp tekrar girerse
-        else if (room.black === token) {
+        // SİYAH eksikse (Siyah ilk defa giriyor veya düşmüş geri dönüyorsa)
+        else if (!room.sockets.black) {
+            const isFirstTime = (room.readyForRestart.length === 0 && !room.gameStartedFlag);
             room.sockets.black = socket.id;
             socket.join(roomID);
-            socket.emit('playerRole', { role: 'black', roomID, isReconnect: true });
-            // Odada bekleyen beyazdan oyunun güncel halini iste
-            if (room.sockets.white) io.to(room.sockets.white).emit('provideSyncData', socket.id);
-        } 
-        // Siyah oyuncu İLK DEFA giriyorsa
-        else if (!room.black) {
-            room.black = token;
-            room.sockets.black = socket.id;
-            socket.join(roomID);
-            socket.emit('playerRole', { role: 'black', roomID, isReconnect: false });
-            io.to(roomID).emit('startGame');
+            
+            if (isFirstTime) {
+                // Siyah ilk defa giriyor
+                room.gameStartedFlag = true;
+                socket.emit('playerRole', { role: 'black', roomID, isReconnect: false });
+                io.to(roomID).emit('startGame');
+            } else {
+                // Siyah düşmüş ve geri dönüyor
+                socket.emit('playerRole', { role: 'black', roomID, isReconnect: true });
+                // Odada bekleyen beyazdan oyunun güncel halini iste
+                if (room.sockets.white) io.to(room.sockets.white).emit('provideSyncData', socket.id);
+            }
         } 
         else {
-            socket.emit('errorMsg', 'Oda dolu veya yetkisiz giriş.');
+            socket.emit('errorMsg', 'Oda dolu.');
         }
     });
 
@@ -105,7 +103,7 @@ io.on('connection', (socket) => {
 
             room.readyForRestart = room.readyForRestart.filter(id => id !== socket.id);
 
-            // Her iki oyuncu da çıktıysa odayı yok et (Sıfırdan temizlik)
+            // Her iki oyuncu da çıktıysa odayı yok et
             if (!room.sockets.white && !room.sockets.black) {
                 delete rooms[roomID];
             }
@@ -114,4 +112,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Sunucu aktif. Çık-Gir senkronizasyonu devrede.`));
+server.listen(PORT, () => console.log(`Sunucu aktif. Esnek Çık-Gir devrede.`));
