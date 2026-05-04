@@ -82,14 +82,15 @@
             align-items: center; z-index: 200; color: #e6ce55; font-size: 24px; font-weight: bold; text-align: center;
         }
 
-        /* YENİ EKLENEN: Yenilen Taşlar Paneli */
+        /* Yenilen Taşlar Paneli */
         #captured-container {
             display: flex; justify-content: space-between; width: 95vw; max-width: 600px;
             margin-top: 15px; background: #1e1e1e; border-radius: 8px; border: 2px solid #333; padding: 10px; box-sizing: border-box;
         }
-        .capture-box { width: 48%; text-align: center; }
+        .capture-box { width: 48%; text-align: center; display: flex; flex-direction: column; }
         .capture-title { font-size: 12px; color: #aaaaaa; margin-bottom: 5px; border-bottom: 1px solid #444; padding-bottom: 3px;}
-        .captured-pieces-list { display: flex; flex-wrap: wrap; gap: 3px; font-size: 22px; min-height: 30px; justify-content: center; align-items: center; color: #fff;}
+        .captured-pieces-list { display: flex; flex-wrap: wrap; gap: 3px; font-size: 22px; justify-content: center; align-items: center; color: #fff; min-height: 28px;}
+        .pawns-list { font-size: 18px; color: #cccccc; min-height: 22px; margin-top: 2px;}
     </style>
 </head>
 <body>
@@ -105,7 +106,8 @@
         </div>
     </div>
 
-    <div id="game-ui" style="display:none; width: 100%; display: flex; flex-direction: column; align-items: center;">
+    <!-- HATA BURADAYDI: display: none ile display: flex çakışıyordu. Sadece none bırakıldı. -->
+    <div id="game-ui" style="display:none; width: 100%; flex-direction: column; align-items: center;">
         <div id="menu">
             <button onclick="location.reload()">🏠 Menü</button>
             <div id="ai-controls" style="display:none;">
@@ -133,15 +135,17 @@
             <div class="files" id="files"></div>
         </div>
 
-        <!-- YENİ EKLENEN: Yenilen Taşlar Paneli -->
+        <!-- Yenilen Taşlar Paneli -->
         <div id="captured-container">
             <div class="capture-box">
                 <div class="capture-title">Aldığın Taşlar</div>
-                <div id="my-captures" class="captured-pieces-list"></div>
+                <div id="my-captures-others" class="captured-pieces-list"></div>
+                <div id="my-captures-pawns" class="captured-pieces-list pawns-list"></div>
             </div>
             <div class="capture-box">
                 <div class="capture-title">Verdiğin Taşlar</div>
-                <div id="opponent-captures" class="captured-pieces-list"></div>
+                <div id="opponent-captures-others" class="captured-pieces-list"></div>
+                <div id="opponent-captures-pawns" class="captured-pieces-list pawns-list"></div>
             </div>
         </div>
     </div>
@@ -152,7 +156,6 @@
         let isAnimating = false, gameOver = false, gameMode = 'pvp', myRole = 'white';
         let currentRoom = null, opponentPresent = false, gameId = 0, aiDepth = 2, isFlipped = false;
         
-        // Yenilen taşların takibi
         let whiteCaptures = [];
         let blackCaptures = [];
 
@@ -256,8 +259,17 @@
             let myCaps = myRole === 'white' ? whiteCaptures : blackCaptures;
             let oppCaps = myRole === 'white' ? blackCaptures : whiteCaptures;
 
-            document.getElementById('my-captures').innerHTML = myCaps.map(p => `<span>${p}</span>`).join('');
-            document.getElementById('opponent-captures').innerHTML = oppCaps.map(p => `<span>${p}</span>`).join('');
+            const myPawns = myCaps.filter(p => p.toLowerCase() === 'p');
+            const myOthers = myCaps.filter(p => p.toLowerCase() !== 'p');
+            
+            const oppPawns = oppCaps.filter(p => p.toLowerCase() === 'p');
+            const oppOthers = oppCaps.filter(p => p.toLowerCase() !== 'p');
+
+            document.getElementById('my-captures-others').innerHTML = myOthers.map(p => `<span>${p}</span>`).join('');
+            document.getElementById('my-captures-pawns').innerHTML = myPawns.map(p => `<span>${p}</span>`).join('');
+            
+            document.getElementById('opponent-captures-others').innerHTML = oppOthers.map(p => `<span>${p}</span>`).join('');
+            document.getElementById('opponent-captures-pawns').innerHTML = oppPawns.map(p => `<span>${p}</span>`).join('');
         }
 
         function resetGame() {
@@ -369,8 +381,6 @@
             let p = boardState[sR][sC];
             let capturedPiece = boardState[eR][eC]; 
 
-            // TAKILMA FİXİ: Emit işlemi animasyon gecikmesinin (setTimeout) Dışına alındı.
-            // Bu sayede sekme değiştirilse bile tarayıcı hamle paketini bekletmeden anında sunucuya yollar.
             if(!isRem && gameMode === 'online') socket.emit('move', { from:{r:sR, c:sC}, to:{r:eR, c:eC}, roomID:currentRoom });
 
             boardState[sR][sC] = ''; selectedSquare = null; validMoves = []; createBoard();
@@ -394,7 +404,6 @@
                 
                 boardState[eR][eC] = p;
 
-                // YENİ: Taş Yeme Takibi
                 if (capturedPiece !== '') {
                     if (isWhite(p)) whiteCaptures.push(capturedPiece);
                     else blackCaptures.push(capturedPiece);
@@ -404,11 +413,10 @@
                 currentTurn = currentTurn === 'white' ? 'black' : 'white';
                 isAnimating = false; checkGameState(); createBoard();
                 
-                // YENİ: PvE Bekleme Süresi ("Bilgisayar Düşünüyor...")
                 if(!gameOver && gameMode === 'pve' && currentTurn === 'black') {
                     showMessage("🤖 Bilgisayar düşünüyor...");
                     document.getElementById('status-bar').style.color = "#4fc3f7";
-                    setTimeout(makeAIMove, 1000); // Hesaplamadan önce 1 Saniye Bekler
+                    setTimeout(makeAIMove, 1000); 
                 }
             }, 600);
         }
@@ -431,7 +439,6 @@
                 } 
                 else { 
                     clearMySelection(); 
-                    // FİX: Sadece kendi turumuzdaki taşa tıklarsak seçebilmemiz için yetki eklendi (AI taşını bozmayı engeller)
                     if (isMyTurnPiece(p)) selectPiece(r, c); 
                 }
             } else if (isMyTurnPiece(p)) {
@@ -536,7 +543,7 @@
             const sq = document.getElementById(`sq-${ch.from.r}-${ch.from.c}`);
             
             if(sq) sq.classList.add('ai-selected');
-            updateStatusBar(); // Durumu tekrar "SIRA RAKİPTE" olarak normal renge günceller
+            updateStatusBar(); 
             setTimeout(() => { if(sq) sq.classList.remove('ai-selected'); animateMove(ch.from.r, ch.from.c, ch.to.r, ch.to.c); }, 2000);
         }
     </script>

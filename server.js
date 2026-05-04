@@ -51,7 +51,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Hamle iletimi
+    // Hamle iletimi (Seçim iletimi kaldırıldı)
     socket.on('move', (data) => {
         socket.to(data.roomID).emit('move', data);
     });
@@ -67,4 +67,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Sunucu aktif. PORT: ${PORT}`));
+server.listen(PORT, () => console.log(`Sunucu aktif.`));
