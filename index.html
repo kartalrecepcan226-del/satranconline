@@ -78,11 +78,10 @@
 
         #waiting-overlay {
             position: absolute; top: 0; left: 32px; right: 0; bottom: 32px;
-            background: rgba(0,0,0,0.8); display: flex; justify-content: center;
-            align-items: center; z-index: 200; color: #e6ce55; font-size: 24px; font-weight: bold; text-align: center;
+            background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center;
+            align-items: center; z-index: 200; color: #e6ce55; font-size: 20px; font-weight: bold; text-align: center; padding: 20px;
         }
 
-        /* Yenilen Taşlar Paneli */
         #captured-container {
             display: flex; justify-content: space-between; width: 95vw; max-width: 600px;
             margin-top: 15px; background: #1e1e1e; border-radius: 8px; border: 2px solid #333; padding: 10px; box-sizing: border-box;
@@ -106,7 +105,6 @@
         </div>
     </div>
 
-    <!-- HATA BURADAYDI: display: none ile display: flex çakışıyordu. Sadece none bırakıldı. -->
     <div id="game-ui" style="display:none; width: 100%; flex-direction: column; align-items: center;">
         <div id="menu">
             <button onclick="location.reload()">🏠 Menü</button>
@@ -125,7 +123,9 @@
         <button id="restart-btn" onclick="requestRestart()">🔄 Tekrar Oyna</button>
 
         <div id="game-container">
-            <div id="waiting-overlay" style="display:none;">Rakip Bekleniyor...</div>
+            <div id="waiting-overlay" style="display:none;">
+                <span id="overlay-text">Rakip Bekleniyor...</span>
+            </div>
             <div class="ranks" id="ranks"></div>
             <div style="position: relative; overflow: hidden;">
                 <div id="board"></div>
@@ -135,7 +135,6 @@
             <div class="files" id="files"></div>
         </div>
 
-        <!-- Yenilen Taşlar Paneli -->
         <div id="captured-container">
             <div class="capture-box">
                 <div class="capture-title">Aldığın Taşlar</div>
@@ -152,6 +151,13 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // Oyuncu kimliğini (Token) tarayıcıya kaydet/oluştur
+        let playerToken = sessionStorage.getItem('chessPlayerToken');
+        if (!playerToken) {
+            playerToken = Math.random().toString(36).substring(2, 10);
+            sessionStorage.setItem('chessPlayerToken', playerToken);
+        }
+
         let boardState = [], selectedSquare = null, validMoves = [], currentTurn = 'white';
         let isAnimating = false, gameOver = false, gameMode = 'pvp', myRole = 'white';
         let currentRoom = null, opponentPresent = false, gameId = 0, aiDepth = 2, isFlipped = false;
@@ -172,7 +178,8 @@
         function handleOnline(action) {
             const roomID = document.getElementById('room-input').value;
             if (!roomID) return alert("Oda adı girin!");
-            socket.emit(action === 'create' ? 'createRoom' : 'joinRoom', roomID);
+            // Token ile birlikte odaya bağlanılıyor
+            socket.emit(action === 'create' ? 'createRoom' : 'joinRoom', { roomID, token: playerToken });
         }
 
         function initUI() { 
@@ -186,10 +193,63 @@
             myRole = data.role; gameMode = 'online'; currentRoom = data.roomID;
             document.getElementById('role-display').textContent = myRole === 'white' ? 'BEYAZ' : 'SİYAH';
             isFlipped = (myRole === 'black');
-            initUI(); resetGame();
-            document.getElementById('waiting-overlay').style.display = 'flex';
+            initUI(); 
+            
+            // Eğer çık-gir yapıldıysa (reconnect) farklı, ilk girişse farklı davran
+            if (data.isReconnect) {
+                document.getElementById('waiting-overlay').style.display = 'flex';
+                document.getElementById('overlay-text').textContent = "Oyun durumu senkronize ediliyor...";
+            } else {
+                resetGame();
+                if (myRole === 'white') {
+                    document.getElementById('waiting-overlay').style.display = 'flex';
+                    document.getElementById('overlay-text').textContent = "Rakip Bekleniyor...";
+                }
+            }
         });
 
+        // ODA İÇİ SENKRONİZASYON (ÇIK GİR ÇÖZÜMÜ)
+        // Odada bekleyen kişi, yeni bağlanana tahtanın durumunu gönderir.
+        socket.on('provideSyncData', (targetSocketId) => {
+            const state = {
+                boardState, currentTurn, whiteCaptures, blackCaptures, gameOver,
+                statusMsg: document.getElementById('status-bar').textContent,
+                statusColor: document.getElementById('status-bar').style.color,
+                rematchMsg: document.getElementById('rematch-status').textContent,
+                restartVisible: document.getElementById('restart-btn').style.display
+            };
+            socket.emit('syncDataResponse', { targetSocketId, roomID: currentRoom, state });
+        });
+
+        // Çık-gir yapan kişi, oyunu diğer oyuncudan çeker
+        socket.on('syncGameState', (state) => {
+            boardState = state.boardState;
+            currentTurn = state.currentTurn;
+            whiteCaptures = state.whiteCaptures;
+            blackCaptures = state.blackCaptures;
+            gameOver = state.gameOver;
+            
+            document.getElementById('status-bar').textContent = state.statusMsg;
+            document.getElementById('status-bar').style.color = state.statusColor;
+            document.getElementById('rematch-status').textContent = state.rematchMsg;
+            document.getElementById('restart-btn').style.display = state.restartVisible;
+
+            createBoard();
+            renderCaptures();
+        });
+
+        socket.on('gameResumed', () => {
+            opponentPresent = true;
+            document.getElementById('waiting-overlay').style.display = 'none';
+        });
+
+        socket.on('opponentOffline', () => {
+            opponentPresent = false;
+            document.getElementById('waiting-overlay').style.display = 'flex';
+            document.getElementById('overlay-text').textContent = "Rakip bağlantısı koptu. Geri dönmesi bekleniyor...";
+        });
+
+        // OYUN DÖNGÜSÜ SOCKETLERİ
         socket.on('startGame', () => {
             opponentPresent = true; 
             document.getElementById('waiting-overlay').style.display = 'none';
@@ -211,19 +271,11 @@
             }, 2000); 
         });
 
-        socket.on('opponentDisconnected', () => {
-            gameOver = true;
-            showMessage("⚠️ RAKİP AYRILDI. OYUN BİTTİ.");
-            document.getElementById('status-bar').style.color = "#ff3333";
-            document.getElementById('restart-btn').style.display = 'none';
-            document.getElementById('rematch-status').textContent = "";
-        });
-
         function requestRestart() {
             document.getElementById('restart-btn').style.display = 'none';
             document.getElementById('rematch-status').textContent = "Rövanş isteği gönderildi...";
             document.getElementById('waiting-overlay').style.display = 'flex';
-            document.getElementById('waiting-overlay').textContent = "Rakip Bekleniyor...";
+            document.getElementById('overlay-text').textContent = "Rakip Bekleniyor...";
             
             if (gameMode === 'online') {
                 socket.emit('requestRestart', currentRoom);
@@ -399,6 +451,7 @@
             setTimeout(() => {
                 document.getElementById('animation-layer').innerHTML = '';
                 
+                // PİYON TERFİSİ
                 if (p === 'P' && eR === 0) p = 'V'; 
                 if (p === 'p' && eR === 7) p = 'v';
                 
