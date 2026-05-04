@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Erişilebilir Satranç - Online</title>
+    <title>Erişilebilir Satranç - Online & Yapay Zeka</title>
     <style>
         body {
             background-color: #121212; color: #ffffff; font-family: Arial, sans-serif;
@@ -21,11 +21,12 @@
         #main-menu input {
             padding: 12px; font-size: 18px; border-radius: 5px; border: 1px solid #777;
             background: #000; color: #fff; width: 90%; margin-bottom: 10px; text-align: center;
+            box-sizing: border-box;
         }
         #menu {
             display: flex; gap: 10px; margin-bottom: 10px; align-items: center;
             background-color: #1e1e1e; padding: 10px; border-radius: 8px; border: 2px solid #333;
-            width: 95%; justify-content: center; flex-wrap: wrap;
+            width: 95vw; max-width: 600px; justify-content: center; flex-wrap: wrap; box-sizing: border-box;
         }
         #menu button, #menu select {
             background-color: #333333; color: #ffffff; border: 1px solid #777;
@@ -69,7 +70,6 @@
             transition: left 0.6s ease-in-out, top 0.6s ease-in-out; pointer-events: none;
         }
 
-        /* Bilgisayar ekranlarında hem tahtayı hem de animasyonlu taşı sabitler */
         @media (min-width: 600px) { 
             .square { font-size: 45px; } 
             .ranks, .files { font-size: 20px; } 
@@ -81,6 +81,15 @@
             background: rgba(0,0,0,0.8); display: flex; justify-content: center;
             align-items: center; z-index: 200; color: #e6ce55; font-size: 24px; font-weight: bold; text-align: center;
         }
+
+        /* YENİ EKLENEN: Yenilen Taşlar Paneli */
+        #captured-container {
+            display: flex; justify-content: space-between; width: 95vw; max-width: 600px;
+            margin-top: 15px; background: #1e1e1e; border-radius: 8px; border: 2px solid #333; padding: 10px; box-sizing: border-box;
+        }
+        .capture-box { width: 48%; text-align: center; }
+        .capture-title { font-size: 12px; color: #aaaaaa; margin-bottom: 5px; border-bottom: 1px solid #444; padding-bottom: 3px;}
+        .captured-pieces-list { display: flex; flex-wrap: wrap; gap: 3px; font-size: 22px; min-height: 30px; justify-content: center; align-items: center; color: #fff;}
     </style>
 </head>
 <body>
@@ -96,7 +105,7 @@
         </div>
     </div>
 
-    <div id="game-ui" style="display:none;">
+    <div id="game-ui" style="display:none; width: 100%; display: flex; flex-direction: column; align-items: center;">
         <div id="menu">
             <button onclick="location.reload()">🏠 Menü</button>
             <div id="ai-controls" style="display:none;">
@@ -123,6 +132,18 @@
             <div class="corner-empty"></div>
             <div class="files" id="files"></div>
         </div>
+
+        <!-- YENİ EKLENEN: Yenilen Taşlar Paneli -->
+        <div id="captured-container">
+            <div class="capture-box">
+                <div class="capture-title">Aldığın Taşlar</div>
+                <div id="my-captures" class="captured-pieces-list"></div>
+            </div>
+            <div class="capture-box">
+                <div class="capture-title">Verdiğin Taşlar</div>
+                <div id="opponent-captures" class="captured-pieces-list"></div>
+            </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -130,6 +151,11 @@
         let boardState = [], selectedSquare = null, validMoves = [], currentTurn = 'white';
         let isAnimating = false, gameOver = false, gameMode = 'pvp', myRole = 'white';
         let currentRoom = null, opponentPresent = false, gameId = 0, aiDepth = 2, isFlipped = false;
+        
+        // Yenilen taşların takibi
+        let whiteCaptures = [];
+        let blackCaptures = [];
+
         const socket = io();
 
         function startMode(mode) {
@@ -146,7 +172,10 @@
             socket.emit(action === 'create' ? 'createRoom' : 'joinRoom', roomID);
         }
 
-        function initUI() { document.getElementById('main-menu').style.display = 'none'; document.getElementById('game-ui').style.display = 'block'; }
+        function initUI() { 
+            document.getElementById('main-menu').style.display = 'none'; 
+            document.getElementById('game-ui').style.display = 'flex'; 
+        }
         
         socket.on('errorMsg', (msg) => { document.getElementById('menu-error').textContent = msg; });
 
@@ -158,7 +187,6 @@
             document.getElementById('waiting-overlay').style.display = 'flex';
         });
 
-        // Her iki taraf da hazır olduğunda tetiklenir
         socket.on('startGame', () => {
             opponentPresent = true; 
             document.getElementById('waiting-overlay').style.display = 'none';
@@ -167,14 +195,12 @@
             resetGame();
         });
 
-        // Rakip "Tekrar Oyna" butonuna bastığında tetiklenir
         socket.on('opponentWantsRematch', () => {
             document.getElementById('rematch-status').textContent = "Rakip rövanş istedi!";
         });
 
         socket.on('move', (data) => {
             const sq = document.getElementById(`sq-${data.from.r}-${data.from.c}`);
-            // Rakip hamleyi tamamlayınca 2 saniye sabit parlar
             if(sq) sq.classList.add('ai-selected');
             setTimeout(() => {
                 if(sq) sq.classList.remove('ai-selected');
@@ -222,6 +248,18 @@
         function isOnBoard(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
         function setDifficulty(l) { aiDepth = parseInt(l); }
 
+        function isMyTurnPiece(p) {
+            return p !== '' && ((currentTurn === 'white' && isWhite(p)) || (currentTurn === 'black' && isBlack(p)));
+        }
+
+        function renderCaptures() {
+            let myCaps = myRole === 'white' ? whiteCaptures : blackCaptures;
+            let oppCaps = myRole === 'white' ? blackCaptures : whiteCaptures;
+
+            document.getElementById('my-captures').innerHTML = myCaps.map(p => `<span>${p}</span>`).join('');
+            document.getElementById('opponent-captures').innerHTML = oppCaps.map(p => `<span>${p}</span>`).join('');
+        }
+
         function resetGame() {
             boardState = [
                 ['k', 'a', 'f', 'v', 'ş', 'f', 'a', 'k'], ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
@@ -229,10 +267,11 @@
                 ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'], ['K', 'A', 'F', 'V', 'Ş', 'F', 'A', 'K']
             ];
             selectedSquare = null; validMoves = []; currentTurn = 'white'; isAnimating = false; gameOver = false;
+            whiteCaptures = []; blackCaptures = []; 
             document.getElementById('status-bar').style.color = "#aaaaaa";
             document.getElementById('rematch-status').textContent = "";
             document.getElementById('restart-btn').style.display = 'none';
-            createCoordinates(); createBoard(); updateStatusBar();
+            createCoordinates(); createBoard(); updateStatusBar(); renderCaptures();
         }
 
         function findKing(color) {
@@ -326,7 +365,14 @@
         }
 
         function animateMove(sR, sC, eR, eC, isRem = false) {
-            isAnimating = true; let p = boardState[sR][sC];
+            isAnimating = true; 
+            let p = boardState[sR][sC];
+            let capturedPiece = boardState[eR][eC]; 
+
+            // TAKILMA FİXİ: Emit işlemi animasyon gecikmesinin (setTimeout) Dışına alındı.
+            // Bu sayede sekme değiştirilse bile tarayıcı hamle paketini bekletmeden anında sunucuya yollar.
+            if(!isRem && gameMode === 'online') socket.emit('move', { from:{r:sR, c:sC}, to:{r:eR, c:eC}, roomID:currentRoom });
+
             boardState[sR][sC] = ''; selectedSquare = null; validMoves = []; createBoard();
             
             const ghost = document.createElement('div'); ghost.classList.add('animated-piece'); ghost.textContent = p;
@@ -343,16 +389,27 @@
             setTimeout(() => {
                 document.getElementById('animation-layer').innerHTML = '';
                 
-                // PİYON TERFİSİ 
                 if (p === 'P' && eR === 0) p = 'V'; 
                 if (p === 'p' && eR === 7) p = 'v';
                 
                 boardState[eR][eC] = p;
+
+                // YENİ: Taş Yeme Takibi
+                if (capturedPiece !== '') {
+                    if (isWhite(p)) whiteCaptures.push(capturedPiece);
+                    else blackCaptures.push(capturedPiece);
+                    renderCaptures();
+                }
+
                 currentTurn = currentTurn === 'white' ? 'black' : 'white';
                 isAnimating = false; checkGameState(); createBoard();
                 
-                if(!isRem && gameMode === 'online') socket.emit('move', { from:{r:sR, c:sC}, to:{r:eR, c:eC}, roomID:currentRoom });
-                if(!gameOver && gameMode === 'pve' && currentTurn === 'black') setTimeout(makeAIMove, 50);
+                // YENİ: PvE Bekleme Süresi ("Bilgisayar Düşünüyor...")
+                if(!gameOver && gameMode === 'pve' && currentTurn === 'black') {
+                    showMessage("🤖 Bilgisayar düşünüyor...");
+                    document.getElementById('status-bar').style.color = "#4fc3f7";
+                    setTimeout(makeAIMove, 1000); // Hesaplamadan önce 1 Saniye Bekler
+                }
             }, 600);
         }
 
@@ -374,9 +431,10 @@
                 } 
                 else { 
                     clearMySelection(); 
-                    if (p !== '') selectPiece(r, c); 
+                    // FİX: Sadece kendi turumuzdaki taşa tıklarsak seçebilmemiz için yetki eklendi (AI taşını bozmayı engeller)
+                    if (isMyTurnPiece(p)) selectPiece(r, c); 
                 }
-            } else if (p !== '' && ((currentTurn === 'white' && isWhite(p)) || (currentTurn === 'black' && isBlack(p)))) {
+            } else if (isMyTurnPiece(p)) {
                 selectPiece(r, c);
             }
         }
@@ -476,8 +534,10 @@
             });
             let ch = choices[Math.floor(Math.random()*choices.length)];
             const sq = document.getElementById(`sq-${ch.from.r}-${ch.from.c}`);
+            
             if(sq) sq.classList.add('ai-selected');
-            setTimeout(() => { if(sq) sq.classList.remove('ai-selected'); animateMove(ch.from.r, ch.from.c, ch.to.r, ch.to.c); }, 1500);
+            updateStatusBar(); // Durumu tekrar "SIRA RAKİPTE" olarak normal renge günceller
+            setTimeout(() => { if(sq) sq.classList.remove('ai-selected'); animateMove(ch.from.r, ch.from.c, ch.to.r, ch.to.c); }, 2000);
         }
     </script>
 </body>
